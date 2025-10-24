@@ -23,9 +23,12 @@ public class OnePersonOpMode extends LinearOpMode {
     private Servo spin;       // Spin Dexter servo
 
     // BUTTON DEBOUNCE
-    private boolean vertPressed = false;
     private boolean spinPressed = false;
     private boolean flyOn = false;
+    private boolean tranOn = false;
+
+    double flySpeed = 0;
+
 
     private double spinZero = 20.0 / 180.0; // start at 20°
 
@@ -33,6 +36,8 @@ public class OnePersonOpMode extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
+        double lastTime = 0;
 
         // HARDWARE MAPPING
         frontLeft  = hardwareMap.get(DcMotor.class, "fl");
@@ -48,14 +53,40 @@ public class OnePersonOpMode extends LinearOpMode {
         trans      = hardwareMap.get(CRServo.class,"trans2");
         spin       = hardwareMap.get(Servo.class,"spin");
 
+        //wheeee
+        //region CONTROL VARS
+        //GAMEPAD 1
+        boolean lb1Pressed = false;
+        boolean rb1Pressed = false;
+        boolean b1Pressed = false;
+        boolean a1Pressed = false;
+        boolean x1Pressed = false;
+        boolean y1Pressed = false;
+        boolean down1Pressed = false;
+        boolean up1Pressed = false;
+        boolean right1Pressed = false;
+        boolean left1Pressed = false;
+        //GAMEPAD 2
+        boolean lb2Pressed = false;
+        boolean rb2Pressed = false;
+        boolean b2Pressed = false;
+        boolean a2Pressed = false;
+        boolean x2Pressed = false;
+        boolean y2Pressed = false;
+        boolean down2Pressed = false;
+        boolean up2Pressed = false;
+        boolean right2Pressed = false;
+        boolean left2Pressed = false;
+        //endregion
+
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.FORWARD);
+        frontRight.setDirection(DcMotor.Direction.REVERSE);
         backRight.setDirection(DcMotor.Direction.FORWARD);
 
-        fly1.setDirection(DcMotor.Direction.FORWARD);
-        fly2.setDirection(DcMotor.Direction.FORWARD);
+        fly1.setDirection(DcMotor.Direction.REVERSE);
+        fly2.setDirection(DcMotor.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.FORWARD);
 
         vertTrans.setPosition(0);
@@ -96,37 +127,51 @@ public class OnePersonOpMode extends LinearOpMode {
             backRight.setPower(brPow);
 
             // ---------- INTAKE ----------
-            double intakeSpeed = Range.clip(gamepad1.right_trigger - gamepad1.left_trigger, -1.0, 1.0);
-            intake.setPower(intakeSpeed);
+            if(gamepad1.right_bumper && !rb1Pressed) {
+                if(intake.getPower() <= 0) intake.setPower(1);
+                else intake.setPower(0);
+            }
+            //OUTTAKE
+            if(gamepad1.left_bumper && !lb1Pressed) {
+                intake.setPower(-0.6);
+            }
 
             // ---------- FLYWHEELS ----------
-            if(gamepad1.right_bumper) flyOn = true;
-            if(gamepad1.left_bumper) flyOn = false;
+            if(gamepad1.a && !a1Pressed) {
+                flyOn = !flyOn;
+                flySpeed = flySpeed <= 0 ? 0.5:flySpeed;
+            }
 
             if(flyOn){
-                fly1.setPower(1.0);
-                fly2.setPower(1.0);
+                fly1.setPower(flySpeed);
+                fly2.setPower(flySpeed);
             } else {
                 fly1.setPower(0);
                 fly2.setPower(0);
             }
 
+            if(gamepad1.right_trigger > 0 && (runtime.milliseconds() - lastTime > 250)) {
+                flySpeed += (flySpeed < 1)? 0.05:0;
+                lastTime = runtime.milliseconds();
+            }
+            if(gamepad1.left_trigger > 0 && (runtime.milliseconds() - lastTime > 250)) {
+                flySpeed -= (flySpeed > 0)? 0.05:0;
+                lastTime = runtime.milliseconds();
+            }
             // ---------- VERTICAL SERVO ----------
-            if(gamepad1.a && !vertPressed){
-                vertTrans.setPosition(0.0); // move down
-                vertPressed = true;
-            } else if(!gamepad1.a){
-                vertPressed = false;
+            if(gamepad1.x && !x1Pressed){
+                vertTrans.setPosition(0.0);
             }
 
             // ---------- TRANS SERVO ----------
-            if(gamepad1.dpad_up){
+            if(gamepad1.dpad_up && !up1Pressed) tranOn = !tranOn;
+            if(tranOn) {
                 trans.setPower(1.0);
             } else {
                 trans.setPower(0);
             }
 
-            // ---------- SPIN DEXTER ----------
+            // ---------- SPINDEXER ----------
             if(gamepad1.b && !spinPressed){
                 spinZero = 0; // reset relative zero
                 double newPos = spin.getPosition() + 120.0/180.0;
@@ -138,8 +183,10 @@ public class OnePersonOpMode extends LinearOpMode {
             }
 
             // ---------- TELEMETRY ----------
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("Fly state", flyOn);
+            telemetry.addData("Fly power", flySpeed);
             telemetry.addData("Intake", intake.getPower());
-            telemetry.addData("Flywheels", flyOn);
             telemetry.addData("VertTrans", vertTrans.getPosition());
             telemetry.addData("Spin", spin.getPosition());
             telemetry.update();
