@@ -17,7 +17,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
     // MECHANISMS
     private DcMotor intake;
-    private DcMotor fly1, fly2;
+    private DcMotorEx fly1, fly2;
     private Servo vertTrans;  // Vertical actuator
     private CRServo trans;    // Continuous lift servo
     private Servo spin;       // Spin Dexter servo
@@ -30,7 +30,7 @@ public class OnePersonOpMode extends LinearOpMode {
     double flySpeed = 0;
 
 
-    private double spinZero = 20.0 / 180.0; // start at 20°
+    private double[] spinZero = {0.0+2.0/27.0,17.0/45.0+2.0/27.0,67.0/90.0+2.0/27.0};
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -38,6 +38,7 @@ public class OnePersonOpMode extends LinearOpMode {
     public void runOpMode() {
 
         double lastTime = 0;
+        int spinIndex = 0;
 
         // HARDWARE MAPPING
         frontLeft  = hardwareMap.get(DcMotor.class, "fl");
@@ -45,8 +46,8 @@ public class OnePersonOpMode extends LinearOpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
 
-        fly1       = hardwareMap.get(DcMotor.class, "fly1");
-        fly2       = hardwareMap.get(DcMotor.class, "fly2");
+        fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
+        fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
 
         vertTrans  = hardwareMap.get(Servo.class,"trans1");
@@ -89,9 +90,13 @@ public class OnePersonOpMode extends LinearOpMode {
         fly2.setDirection(DcMotor.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.FORWARD);
 
+        //MODES
+        fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
         vertTrans.setPosition(0);
         trans.setPower(0);
-        spin.setPosition(spinZero);
+        spin.setPosition(spinZero[0]);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -139,44 +144,43 @@ public class OnePersonOpMode extends LinearOpMode {
             // ---------- FLYWHEELS ----------
             if(gamepad1.a && !a1Pressed) {
                 flyOn = !flyOn;
-                flySpeed = flySpeed <= 0 ? 0.5:flySpeed;
+                flySpeed = flySpeed <= 0 ? 1000:flySpeed;
             }
 
             if(flyOn){
-                fly1.setPower(flySpeed);
-                fly2.setPower(flySpeed);
+                fly1.setVelocity(flySpeed);
+                fly2.setVelocity(flySpeed);
             } else {
-                fly1.setPower(0);
-                fly2.setPower(0);
+                fly1.setVelocity(0);
+                fly2.setVelocity(0);
             }
 
             if(gamepad1.right_trigger > 0 && (runtime.milliseconds() - lastTime > 250)) {
-                flySpeed += (flySpeed < 1)? 0.05:0;
+                flySpeed += 50;
                 lastTime = runtime.milliseconds();
             }
             if(gamepad1.left_trigger > 0 && (runtime.milliseconds() - lastTime > 250)) {
-                flySpeed -= (flySpeed > 0)? 0.05:0;
+                flySpeed -= (flySpeed > 0)? 50:0;
                 lastTime = runtime.milliseconds();
-            }
-            // ---------- VERTICAL SERVO ----------
-            if(gamepad1.x && !x1Pressed){
-                vertTrans.setPosition(0.0);
             }
 
             // ---------- TRANS SERVO ----------
-            if(gamepad1.dpad_up && !up1Pressed) tranOn = !tranOn;
+            if(gamepad1.dpad_up && !up1Pressed) {
+                tranOn = !tranOn;
+            }
             if(tranOn) {
-                trans.setPower(1.0);
+                trans.setPower(-1);
+                vertTrans.setPosition(0.27);
             } else {
                 trans.setPower(0);
+                vertTrans.setPosition(0);
             }
 
             // ---------- SPINDEXER ----------
-            if(gamepad1.b && !spinPressed){
-                spinZero = 0; // reset relative zero
-                double newPos = spin.getPosition() + 120.0/180.0;
-                if(newPos > 1.0) newPos -= 1.0; // wrap
-                spin.setPosition(newPos);
+            if(gamepad1.b && !spinPressed){//0.111111, 0.377777, 0.7444444444
+                spinIndex+=1;
+                if(spinIndex>2) spinIndex = 0;
+                spin.setPosition(spinZero[spinIndex]);
                 spinPressed = true;
             } else if(!gamepad1.b){
                 spinPressed = false;
@@ -190,6 +194,30 @@ public class OnePersonOpMode extends LinearOpMode {
             telemetry.addData("VertTrans", vertTrans.getPosition());
             telemetry.addData("Spin", spin.getPosition());
             telemetry.update();
+
+            //region CONTROL RESETS
+            b1Pressed = gamepad1.b;
+            a1Pressed = gamepad1.a;
+            x1Pressed = gamepad1.x;
+            y1Pressed = gamepad1.y;
+            down1Pressed = gamepad1.dpad_down;
+            up1Pressed = gamepad1.dpad_up;
+            left1Pressed = gamepad1.dpad_left;
+            right1Pressed = gamepad1.dpad_right;
+            lb1Pressed = gamepad1.left_bumper;
+            rb1Pressed = gamepad1.right_bumper;
+
+            b2Pressed = gamepad2.b;
+            a2Pressed = gamepad2.a;
+            x2Pressed = gamepad2.x;
+            y2Pressed = gamepad2.y;
+            down2Pressed = gamepad2.dpad_down;
+            up2Pressed = gamepad2.dpad_up;
+            left2Pressed = gamepad2.dpad_left;
+            right2Pressed = gamepad2.dpad_right;
+            lb2Pressed = gamepad2.left_bumper;
+            rb2Pressed = gamepad2.right_bumper;
+            //endregion
 
             sleep(20);
         }
