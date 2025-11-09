@@ -58,8 +58,7 @@ public class OnePersonOpMode extends LinearOpMode {
         vertTrans  = hardwareMap.get(Servo.class,"trans1");
         trans      = hardwareMap.get(CRServo.class,"trans2");
         spin       = hardwareMap.get(Servo.class,"spin");
-
-        hood1      = hardwareMap.get(Servo.class,"hood1");
+        hood1      = hardwareMap.get(Servo.class,"hood");
 
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
