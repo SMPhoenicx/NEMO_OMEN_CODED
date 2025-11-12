@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
-import androidx.annotation.Size;
+import android.util.Size;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -14,7 +14,6 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.internal.camera.calibration.Size;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -101,7 +100,7 @@ public class Camera extends LinearOpMode {
         visionPortal = new VisionPortal.Builder()
                 .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
                 .addProcessor(aprilTag)
-                .setCameraResolution(new org.firstinspires.ftc.robotcore.internal.camera.calibration.Size(1280, 720))
+                .setCameraResolution(new Size(1280, 720))
                 .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
                 .build();
     }
