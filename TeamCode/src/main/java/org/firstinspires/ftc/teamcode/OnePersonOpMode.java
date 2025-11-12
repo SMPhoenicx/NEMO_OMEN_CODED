@@ -54,12 +54,12 @@ public class OnePersonOpMode extends LinearOpMode {
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
-
+/*
         vertTrans  = hardwareMap.get(Servo.class,"trans1");
         trans      = hardwareMap.get(CRServo.class,"trans2");
         spin       = hardwareMap.get(Servo.class,"spin");
         hood1      = hardwareMap.get(Servo.class,"hood");
-
+*/
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
@@ -73,12 +73,12 @@ public class OnePersonOpMode extends LinearOpMode {
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
+/*
         hood1.setPosition(0);
         vertTrans.setPosition(0);
         trans.setPower(0);
         spin.setPosition(spinZero[0]);
-
+*/
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
@@ -121,7 +121,7 @@ public class OnePersonOpMode extends LinearOpMode {
             if(gamepad1.leftBumperWasPressed()) {
                 intake.setPower(-0.6);
             }
-
+/*
             // ------------ HOOD -------------
             if(gamepad2.dpadUpWasPressed() && (runtime.milliseconds() - lastTimeHood > 250)) {
                 if (hoodPosition+0.05 < 0.25){
@@ -141,7 +141,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 hood1.setPosition(hoodPosition);
                 lastTimeHood = runtime.milliseconds();
             }
-
+*/
             // ---------- FLYWHEELS ----------
             if(gamepad2.aWasPressed()) {
                 flyOn = !flyOn;
@@ -165,6 +165,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 lastTime = runtime.milliseconds();
             }
 
+            /*
             // ---------- TRANS SERVO ----------
             if(gamepad2.yWasPressed()) {
                 tranOn = !tranOn;
@@ -191,15 +192,18 @@ public class OnePersonOpMode extends LinearOpMode {
             } else if(!gamepad2.bWasPressed() || !gamepad2.xWasPressed()){
                 spinPressed = false;
             }
-
+*/
             // ---------- TELEMETRY ----------
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Fly state", flyOn);
             telemetry.addData("Fly power", flySpeed);
+            /*
             telemetry.addData("Intake", intake.getPower());
             telemetry.addData("VertTrans", vertTrans.getPosition());
             telemetry.addData("Spin", spin.getPosition());
             telemetry.addData("Hood Position", hood1.getPosition());
+            */
+
             telemetry.update();
 
             sleep(20);
