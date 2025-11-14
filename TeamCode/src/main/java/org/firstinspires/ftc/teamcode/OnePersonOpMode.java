@@ -300,7 +300,7 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
-
+//df
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
             double baseF = 12.0 / 2450.0;
