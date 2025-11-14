@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.util.Size;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -11,9 +13,27 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import com.acmerobotics.roadrunner.Pose2d;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 @TeleOp(name="OnePersonOpMode", group="Linear OpMode")
 public class OnePersonOpMode extends LinearOpMode {
-
+    private ElapsedTime pidTimer = new ElapsedTime();
+    double TURN_P = 0.06;
+    double TURN_D = 0.002;
+    final double TURN_GAIN = 0.02;
+    final double MAX_AUTO_TURN = 0.4;
     //region HARDWARE DECLARATIONS
 // Drive Motors
     private DcMotor frontLeft = null;
@@ -30,14 +50,13 @@ public class OnePersonOpMode extends LinearOpMode {
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
     private Servo hood;
-    
+    private final double[] HOOD_POSITIONS = {0.2,0.4,0.6,0.8,1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
-    
+
     //endregion
    
     //EXTRA VARS
-    private double hoodAngle = 0;
     private double vertTranAngle = 0;
 
     //region CAROUSEL SYSTEM
@@ -62,16 +81,33 @@ public class OnePersonOpMode extends LinearOpMode {
     private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 177.0, 237.0, 297.0, 357.0};
     private int carouselIndex = 0;
     private int prevCarouselIndex = 0;
-    //endregion
+
+
+
+    //VISION STUFF
+    private static final int DESIRED_TAG_ID = 20;
+    private VisionPortal visionPortal;
+    private AprilTagProcessor aprilTag;
+    private AprilTagDetection desiredTag;
+    private boolean facingGoal = false;
+    private double lastKnownBearing = 0;
+    private double lastKnownRange = 0;
+    private long lastDetectionTime = 0;
+    private static final long PREDICTION_TIMEOUT = 500;
+    private double lastHeadingError = 0;
+
 
 
     private ElapsedTime runtime = new ElapsedTime();
 
     @Override
     public void runOpMode() {
-
+        boolean targetFound = false;
+        boolean localizeApril = true;
+        double aprilLocalizationTimeout=0;
+        desiredTag  = null;
+        initAprilTag();
         //region OPERATIONAL VARIABLES
-
         // Mechanism States
         boolean tranOn = false;
         boolean intakeOn = false;
@@ -96,15 +132,12 @@ public class OnePersonOpMode extends LinearOpMode {
         frontRight = hardwareMap.get(DcMotor.class, "fr");
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
-
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
-       
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         vertTrans = hardwareMap.get(Servo.class, "vtrans");
-
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         
       
@@ -127,9 +160,12 @@ public class OnePersonOpMode extends LinearOpMode {
         
         //endregion
 
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
+        setManualExposure(4, 200);  // Use low exposure time to reduce motion blur
 
+        //INIT TELEMETRY
+        telemetry.addData("Camera preview on/off", "3 dots, Camera Stream");
+        telemetry.addData(">", "Touch START to start OpMode");
+        telemetry.update();
         waitForStart();
         runtime.reset();
 
@@ -139,9 +175,60 @@ public class OnePersonOpMode extends LinearOpMode {
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
             turn = -gamepad1.right_stick_x;
-            
-            moveRobot(drive, strafe, turn);
             //endregion
+
+            //region CAMERA
+            targetFound = false;
+            desiredTag  = null;
+
+            //like so localization averages if both goals are in view
+
+            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+            for (AprilTagDetection detection : currentDetections) {
+                // Look to see if we have size info on this tag.
+                if (detection.metadata != null) {
+                    //  Check to see if we want to track towards this tag.
+                    if ((DESIRED_TAG_ID < 0) || (detection.id == DESIRED_TAG_ID)) {
+                        // Yes, we want to use this tag.
+                        desiredTag = detection;
+                        targetFound = true;
+                    } else {
+                        // This tag is in the library, but we do not want to track it right now.
+                        telemetry.addData("Skipping", "Tag ID %d is not desired", detection.id);
+                    }
+                }else {
+                    // This tag is NOT in the library, so we don't have enough information to track to it.
+                    telemetry.addData("Unknown", "Tag ID %d is not in TagLibrary", detection.id);
+                }
+            }
+
+            // DO WHEN CAMERA TRACKING
+            //MAYBE MAKE THIS WHEN facingGoal BOOL IS TRUE?
+            if (targetFound) {
+                adjustDecimation(desiredTag.ftcPose.range);
+                double range = desiredTag.ftcPose.range;
+
+                if(range <= 13) {
+                    hood.setPosition(HOOD_POSITIONS[0]);
+                }
+                else if (range <= 25){
+                    hood.setPosition(HOOD_POSITIONS[1]);
+                }
+                else if (range <= 38){
+                    hood.setPosition(HOOD_POSITIONS[2]);
+                }
+                else if (range <= 50){
+                    hood.setPosition(HOOD_POSITIONS[3]);
+                }
+                else{
+                    hood.setPosition(HOOD_POSITIONS[4]);
+                }
+                flySpeed = 5.47 * range + 933.0;
+                telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
+                telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
+                telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
+                telemetry.addData("Yaw","%3.0f degrees", desiredTag.ftcPose.yaw);
+            }
 
             //region INTAKE CONTROL
             if (gamepad1.rightBumperWasPressed()) {
@@ -164,7 +251,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
             //region TRANSFER CONTROL
             if (gamepad2.triangleWasPressed()) {
-                vertTranAngle = vertTranAngle == 50? 0:50;
+                vertTranAngle = vertTranAngle == 1.0? 0:1.0;
             }
 
             vertTrans.setPosition(vertTranAngle);
@@ -230,13 +317,77 @@ public class OnePersonOpMode extends LinearOpMode {
                 fly1.setVelocity(0);
                 fly2.setVelocity(0);
             }
+
+            if (gamepad1.crossWasPressed()){
+                facingGoal = !facingGoal;
+            }
+
+            if (facingGoal) {
+                if (targetFound) {
+                    lastKnownBearing = desiredTag.ftcPose.bearing;
+                    lastKnownRange = desiredTag.ftcPose.range;
+                    lastDetectionTime = System.currentTimeMillis();
+
+                    double headingError = desiredTag.ftcPose.bearing;
+
+                    double deltaTime = pidTimer.seconds();
+                    double derivative = (headingError - lastHeadingError) / deltaTime;
+                    pidTimer.reset();
+
+                    if (Math.abs(headingError) < 2.0) {
+                        turn = 0;
+                    } else {
+                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+                    }
+
+                    lastHeadingError = headingError;
+
+                    telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
+                }
+                else {
+                    //TRYING TO PREVENT A LOT OF TRACKING LOSS
+                    long timeSinceLost = System.currentTimeMillis() - lastDetectionTime;
+
+                    if (timeSinceLost < PREDICTION_TIMEOUT) {
+                        // Continue tracking last known bearing
+                        double headingError = lastKnownBearing;
+
+                        double deltaTime = pidTimer.seconds();
+                        double derivative = (headingError - lastHeadingError) / deltaTime;
+                        pidTimer.reset();
+
+                        if (Math.abs(headingError) < 2.0) {
+                            turn = 0;
+                        } else {
+                            turn = (TURN_P * headingError) + (TURN_D * derivative);
+                            turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+                        }
+
+                        lastHeadingError = headingError;
+
+                        telemetry.addData("Tracking", "PREDICTED (lost %dms ago)", timeSinceLost);
+                    } else {
+                        turn = 0;
+                        lastHeadingError = 0;
+                        pidTimer.reset();
+                        telemetry.addData("Tracking", "LOST");
+                    }
+                }
+            }
+            else{
+                turn  = -gamepad1.right_stick_x;
+                lastHeadingError = 0;
+                pidTimer.reset();
+            }
+
             //endregion
 
+            moveRobot(drive, strafe, turn);
 
             // ---------- TELEMETRY ----------
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Flywheel Speed", "%.0f", flySpeed);
-            telemetry.addData("Hood Angle", "%.1f°", hoodAngle);
+            telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
             telemetry.addData("Carousel Target", "%.1f°", targetAngle);
             telemetry.update();
         }
@@ -337,6 +488,63 @@ public class OnePersonOpMode extends LinearOpMode {
         if (error > 180) error -= 360;
         if (error < -180) error += 360;
         return error;
+    }
+    private void initAprilTag() {
+        aprilTag = new AprilTagProcessor.Builder()
+                .setDrawTagOutline(true)
+                .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
+                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
+                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)
+                .build();
+
+        aprilTag.setDecimation(4);
+
+        visionPortal = new VisionPortal.Builder()
+                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+                .addProcessor(aprilTag)
+                .setCameraResolution(new Size(1280, 720))
+                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+                .build();
+    }
+
+    private void setManualExposure(int exposureMS, int gain) {
+        if (visionPortal == null) return;
+
+        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+            telemetry.addData("Camera", "Waiting for stream...");
+            telemetry.update();
+            while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
+                sleep(20);
+            }
+            telemetry.addData("Camera", "Ready");
+            telemetry.update();
+        }
+
+        if (!isStopRequested()) {
+            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+            if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
+                exposureControl.setMode(ExposureControl.Mode.Manual);
+                sleep(50);
+            }
+            exposureControl.setExposure((long) exposureMS, TimeUnit.MILLISECONDS);
+            sleep(20);
+            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+            gainControl.setGain(gain);
+            sleep(20);
+        }
+    }
+
+    private void adjustDecimation(double range) {
+        int newDecimation;
+        if (range > 90) {
+            newDecimation = 3;
+        } else if (range > 50) {
+            newDecimation = 3;
+        } else {
+            newDecimation = 4;
+        }
+        aprilTag.setDecimation(newDecimation);
+        telemetry.addData("Decimation", "%d", newDecimation);
     }
     //endregion
 }

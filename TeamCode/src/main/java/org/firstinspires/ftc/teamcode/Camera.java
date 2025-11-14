@@ -26,9 +26,8 @@ public class Camera extends LinearOpMode {
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;
     private AprilTagDetection desiredTag;
-
     private boolean targetFound = false;
-
+    private boolean facingGoal = false;
     private double lastKnownBearing = 0;
     private double lastKnownRange = 0;
     private long lastDetectionTime = 0;
