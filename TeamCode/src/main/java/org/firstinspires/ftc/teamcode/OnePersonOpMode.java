@@ -281,6 +281,17 @@ public class OnePersonOpMode extends LinearOpMode {
 
             //endregion
 
+            if(gamepad2.dpadDownWasPressed()){
+                if(hood.getPosition() > 0.25){
+                    hood.setPosition(hood.getPosition() - 0.05);
+                }
+            }
+
+            if(gamepad2.dpadUpWasPressed()){
+                if(hood.getPosition() < 0.85){
+                    hood.setPosition(hood.getPosition() + 0.05);
+                }
+            }
 
 
             //region CAROUSEL CONTROL
