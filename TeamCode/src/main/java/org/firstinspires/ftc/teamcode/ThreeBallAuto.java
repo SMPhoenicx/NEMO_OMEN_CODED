@@ -158,8 +158,16 @@ public class ThreeBallAuto extends LinearOpMode {
         telemetry.update();
         waitForStart();
         runtime.reset();
-
-        vertTrans.setPosition(transMin);
+        double timeChange = runtime.milliseconds();
+        while (opModeIsActive()) {
+            frontLeft.setPower(1);
+            frontRight.setPower(1);
+            backLeft.setPower(1);
+            backRight.setPower(1);
+            if(timeChange > 500){
+                break;
+            }
+        }
     }
 
 }
