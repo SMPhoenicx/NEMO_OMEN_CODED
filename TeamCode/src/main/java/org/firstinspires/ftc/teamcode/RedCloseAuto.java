@@ -25,6 +25,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.Vector2d;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
 @Config
 @Autonomous(name = "Red Close Auto")
 public class RedCloseAuto extends LinearOpMode {
@@ -55,20 +57,100 @@ public class RedCloseAuto extends LinearOpMode {
     private static final int pivotMax = 1100;
     private static final int pivotMin = 800;
 
+    private static final Pose2d Start = new Pose2d(144-23, 129,Math.toRadians(45));
 
+    private static final Pose2d Pickup1 = new Pose2d(144-41, 95, Math.toRadians(0));
+
+    private static final Pose2d Pickup2 = new Pose2d(144-39,93,Math.toRadians(0));
+    private static final Pose2d Pickup3 = new Pose2d(144-26,93,Math.toRadians(0));
+    private static final Pose2d shoot1 = new Pose2d(144-42,94,Math.toRadians(45));
+    private static final Pose2d shoot0 = new Pose2d(144-43,109,Math.toRadians(45));
+
+    private ElapsedTime runtime = new ElapsedTime();
+    private DcMotor frontLeftDrive = null;
+    private DcMotor backLeftDrive = null;
+    private DcMotor frontRightDrive = null;
+    private DcMotor backRightDrive = null;
     @Override
     public void runOpMode() throws InterruptedException {
-        rext = hardwareMap.get(DcMotor.class, "rext");
-        lext = hardwareMap.get(DcMotor.class, "lext");
-        rpivot = hardwareMap.get(DcMotor.class, "rpivot");
-        lpivot = hardwareMap.get(DcMotor.class, "lpivot");
-        servo1 = hardwareMap.get(CRServo.class, "s1");
-        servo2 = hardwareMap.get(CRServo.class, "s2");
-        sWrist = hardwareMap.get(Servo.class, "sWrist");
-        sWrist.setPosition(0);
-        Sample = hardwareMap.get(Servo.class, "Sample");
-        Sample.setPosition(0);
+        double max;
+        frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_drive");
+        backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_drive");
+        frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
+        backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
+        frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+        frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
+        backRightDrive.setDirection(DcMotor.Direction.REVERSE);
+        waitForStart();
+        runtime.reset();
 
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+            // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
+            double axial = 1-Math.tanh(getRuntime());  // Note: pushing stick forward gives negative value
+            double lateral = 0*gamepad1.left_stick_x;
+            double yaw = 0*gamepad1.right_stick_x;
+
+            // Combine the joystick requests for each axis-motion to determine each wheel's power.
+            // Set up a variable for each drive wheel to save the power level for telemetry.
+            double frontLeftPower = axial + lateral + yaw;
+            double frontRightPower = axial - lateral - yaw;
+            double backLeftPower = axial - lateral + yaw;
+            double backRightPower = axial + lateral - yaw;
+
+            // Normalize the values so no wheel power exceeds 100%
+            // This ensures that the robot maintains the desired motion.
+            max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+            max = Math.max(max, Math.abs(backLeftPower));
+            max = Math.max(max, Math.abs(backRightPower));
+
+            if (max > 1.0) {
+                frontLeftPower /= max;
+                frontRightPower /= max;
+                backLeftPower /= max;
+                backRightPower /= max;
+            }
+
+            // This is test code:
+            //
+            // Uncomment the following code to test your motor directions.
+            // Each button should make the corresponding motor run FORWARD.
+            //   1) First get all the motors to take to correct positions on the robot
+            //      by adjusting your Robot Configuration if necessary.
+            //   2) Then make sure they run in the correct direction by modifying the
+            //      the setDirection() calls above.
+            // Once the correct motors move in the correct direction re-comment this code.
+
+            /*
+            frontLeftPower  = gamepad1.x ? 1.0 : 0.0;  // X gamepad
+            backLeftPower   = gamepad1.a ? 1.0 : 0.0;  // A gamepad
+            frontRightPower = gamepad1.y ? 1.0 : 0.0;  // Y gamepad
+            backRightPower  = gamepad1.b ? 1.0 : 0.0;  // B gamepad
+            */
+
+            // Send calculated power to wheels
+            frontLeftDrive.setPower(frontLeftPower);
+            frontRightDrive.setPower(frontRightPower);
+            backLeftDrive.setPower(backLeftPower);
+            backRightDrive.setPower(backRightPower);
+            telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("Front left/Right", "%4.2f, %4.2f", frontLeftPower, frontRightPower);
+            telemetry.addData("Back  left/Right", "%4.2f, %4.2f", backLeftPower, backRightPower);
+            telemetry.update();
+        }
+
+
+            rext = hardwareMap.get(DcMotor.class, "rext");
+            lext = hardwareMap.get(DcMotor.class, "lext");
+            rpivot = hardwareMap.get(DcMotor.class, "rpivot");
+            lpivot = hardwareMap.get(DcMotor.class, "lpivot");
+            servo1 = hardwareMap.get(CRServo.class, "s1");
+            servo2 = hardwareMap.get(CRServo.class, "s2");
+            sWrist = hardwareMap.get(Servo.class, "sWrist");
+            sWrist.setPosition(0);
+            Sample = hardwareMap.get(Servo.class, "Sample");
+            Sample.setPosition(0);
         Lift lift = new Lift(hardwareMap);
         Pivot pivot = new Pivot(hardwareMap);
         Intake intake = new Intake(hardwareMap);
@@ -78,8 +160,12 @@ public class RedCloseAuto extends LinearOpMode {
 
         TrajectoryActionBuilder pushSamples = drive.actionBuilder(SPECIMEN_DROP)
                 .waitSeconds(4.5)
-                .strafeTo(new Vector2d(9,-32))
-                .strafeTo(new Vector2d(35,-35))
+                .splineToLinearHeading(Pickup1,1)
+                .splineToLinearHeading(shoot0,1)
+                .splineToLinearHeading(Pickup2,1)
+                .splineToLinearHeading(shoot1,1)
+                .splineToLinearHeading(Pickup3,1)
+                //.splineToLinearHeading(shoot2,1)
                 .splineToConstantHeading(new Vector2d(35,-34),Math.toRadians(90))
                 .splineToConstantHeading(new Vector2d(35,-15),Math.toRadians(90))
                 .splineToConstantHeading(new Vector2d(45,-15),Math.toRadians(-90))
