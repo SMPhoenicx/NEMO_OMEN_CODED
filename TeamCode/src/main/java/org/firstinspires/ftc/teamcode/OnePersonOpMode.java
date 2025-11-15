@@ -77,12 +77,12 @@ public class OnePersonOpMode extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 177.0, 237.0, 297.0, 357.0};
     private int carouselIndex = 0;
-    private int prevCarouselIndex = 0;
+    private int prevCarxouselIndex = 0;
 
 
 
     //VISION STUFF
-    private static final int DESIRED_TAG_ID = 20;
+    private static final int DESIRED_TAG_ID = 23;
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;
     private AprilTagDetection desiredTag;
@@ -154,12 +154,12 @@ public class OnePersonOpMode extends LinearOpMode {
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
+        frontRight.setDirection(DcMotor.Direction.FORWARD);
         backRight.setDirection(DcMotor.Direction.FORWARD);
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
-        intake.setDirection(DcMotor.Direction.FORWARD);
+        intake.setDirection(DcMotor.Direction.REVERSE);
         
         spin.setDirection(CRServo.Direction.FORWARD);
         hood.setDirection(Servo.Direction.FORWARD);
@@ -192,8 +192,6 @@ public class OnePersonOpMode extends LinearOpMode {
             //region CAMERA
             targetFound = false;
             desiredTag  = null;
-
-            //like so localization averages if both goals are in view
 
             List<AprilTagDetection> currentDetections = aprilTag.getDetections();
             for (AprilTagDetection detection : currentDetections) {
@@ -264,16 +262,18 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad2.triangleWasPressed()) {
                 if (vertTranAngle == transMax) {
                     vertTranAngle = transMid;
-                }else{
+                }else {
                     vertTranAngle = transMax;
                 }
             }
-
             if (gamepad2.squareWasPressed()) {
-                if (vertTranAngle == transMid) {
-                    vertTranAngle = transMin;
-                }else{
-                    vertTranAngle = transMid;
+                if(!flyOn){
+                    if (vertTranAngle == transMid) {
+                        vertTranAngle = transMin;
+                    }else {
+                        vertTranAngle = transMid;
+
+                    }
                 }
             }
 
@@ -281,65 +281,15 @@ public class OnePersonOpMode extends LinearOpMode {
 
             //endregion
 
+
+
+            //region CAROUSEL CONTROL
+
             //region ADJUST CAROUSEL PID
             double nowMs = runtime.milliseconds();
             double dtSec = (nowMs - pidLastTimeMs) / 1000.0;
             if (dtSec <=0.0) dtSec = 1.0/50.0;
             pidLastTimeMs = nowMs;
-
-            // === PIDF tuning via Gamepad2 ===
-            double adjustStepP = 0.0002;
-            double adjustStepI = 0.00001;
-            double adjustStepD = 0.00001;
-            double adjustStepF = 0.002;
-            double debounceTime = 50;
-
-            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
-                if (gamepad1.dpad_up) {
-                    pidKp += adjustStepP;
-                    lastPAdjustTime = runtime.milliseconds();
-                }
-                if (gamepad1.dpad_down) {
-                    pidKp += adjustStepP;
-                    lastPAdjustTime = runtime.milliseconds();
-                }
-            }
-            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
-                if (gamepad1.dpad_right) {
-                    pidKp += adjustStepI;
-                    lastIAdjustTime = runtime.milliseconds();
-                }
-                if (gamepad1.dpad_left) {
-                    pidKp += adjustStepI;
-                    lastIAdjustTime = runtime.milliseconds();
-                }
-            }
-            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
-                if (gamepad2.dpad_up) {
-                    pidKp += adjustStepD;
-                    lastPAdjustTime = runtime.milliseconds();
-                }
-                if (gamepad2.dpad_down) {
-                    pidKp += adjustStepD;
-                    lastPAdjustTime = runtime.milliseconds();
-                }
-            }
-
-            // Safety clamp
-            pidKp = Math.max(0, pidKp);
-            pidKi = Math.max(0, pidKi);
-            pidKd = Math.max(0, pidKd);
-            pidKf = Math.max(0, pidKf);
-
-            // Display PID constants on telemetry
-            telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
-            telemetry.addData("kP", "%.6f", pidKp);
-            telemetry.addData("kI", "%.6f", pidKi);
-            telemetry.addData("kD", "%.6f", pidKd);
-            telemetry.addData("kF", "%.6f", pidKf);
-            //endregion
-
-            //region CAROUSEL CONTROL
 
             // Carousel Navigation
             //Left and Right go to intake positions, aka the odd numbered indices on the pos array
@@ -564,7 +514,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 .setDrawTagOutline(true)
                 .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)
+                .setLensIntrinsics(0, 0, 0, 0)//CAMERA CALLIBRATION VALUES
                 .build();
 
         aprilTag.setDecimation(4);
