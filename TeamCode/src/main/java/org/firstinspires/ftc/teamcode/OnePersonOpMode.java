@@ -50,7 +50,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
     private Servo hood;
-    private final double[] HOOD_POSITIONS = {0.2,0.4,0.6,0.8,1};//may have to change
+    private final double[] HOOD_POSITIONS = {0.25,0.4,0.65,0.5};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
 
@@ -117,6 +117,8 @@ public class OnePersonOpMode extends LinearOpMode {
         double lastIAdjustTime = 0;
         double lastDAdjustTime = 0;
         double lastFAdjustTime = 0;
+
+        double hoodAngle =0;
 
         // Drive Variables
         double drive = 0;
@@ -218,21 +220,19 @@ public class OnePersonOpMode extends LinearOpMode {
                 adjustDecimation(desiredTag.ftcPose.range);
                 double range = desiredTag.ftcPose.range;
 
-                if(range <= 13) {
-                    hood.setPosition(HOOD_POSITIONS[0]);
-                }
-                else if (range <= 25){
-                    hood.setPosition(HOOD_POSITIONS[1]);
-                }
-                else if (range <= 38){
-                    hood.setPosition(HOOD_POSITIONS[2]);
-                }
-                else if (range <= 50){
-                    hood.setPosition(HOOD_POSITIONS[3]);
-                }
-                else{
-                    hood.setPosition(HOOD_POSITIONS[4]);
-                }
+//                if(range <= 13) {
+//                    hood.setPosition(HOOD_POSITIONS[0]);
+//                }
+//                else if (range <= 25){
+//                    hood.setPosition(HOOD_POSITIONS[1]);
+//                }
+//                else if (range <= 38){
+//                    hood.setPosition(HOOD_POSITIONS[2]);
+//                }
+//                else{
+//                    hood.setPosition(HOOD_POSITIONS[3]);
+//                }
+
                 telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
                 telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
                 telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
@@ -261,19 +261,9 @@ public class OnePersonOpMode extends LinearOpMode {
             //region TRANSFER CONTROL
             if (gamepad2.triangleWasPressed()) {
                 if (vertTranAngle == transMax) {
-                    vertTranAngle = transMid;
+                    vertTranAngle = transMin;
                 }else {
                     vertTranAngle = transMax;
-                }
-            }
-            if (gamepad2.squareWasPressed()) {
-                if(!flyOn){
-                    if (vertTranAngle == transMid) {
-                        vertTranAngle = transMin;
-                    }else {
-                        vertTranAngle = transMid;
-
-                    }
                 }
             }
 
@@ -282,18 +272,18 @@ public class OnePersonOpMode extends LinearOpMode {
             //endregion
 
             if(gamepad2.dpadDownWasPressed()){
-                if(hood.getPosition() > 0.25){
-                    hood.setPosition(hood.getPosition() - 0.05);
+                if(hoodAngle > 0.25){
+                    hoodAngle -= 0.05;
                 }
             }
 
             if(gamepad2.dpadUpWasPressed()){
-                if(hood.getPosition() < 0.85){
-                    hood.setPosition(hood.getPosition() + 0.05);
+                if(hoodAngle < 0.85){
+                    hoodAngle += 0.05;
                 }
             }
 
-
+            hood.setPosition(hoodAngle);
             //region CAROUSEL CONTROL
 
             //region ADJUST CAROUSEL PID
