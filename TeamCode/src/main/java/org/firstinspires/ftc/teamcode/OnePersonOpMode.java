@@ -50,7 +50,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
     private Servo hood;
-    private final double[] HOOD_POSITIONS = {0.25,0.4,0.65,0.5};//may have to change
+    private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
 
@@ -268,18 +268,18 @@ public class OnePersonOpMode extends LinearOpMode {
             }
 
             vertTrans.setPosition(vertTranAngle);
-
+            telemetry.addData("VertTrans", vertTranAngle);
             //endregion
 
             if(gamepad2.dpadDownWasPressed()){
-                if(hoodAngle > 0.25){
-                    hoodAngle -= 0.05;
+                if(hoodAngle > 0.1){
+                    hoodAngle -= 0.1;
                 }
             }
 
             if(gamepad2.dpadUpWasPressed()){
-                if(hoodAngle < 0.85){
-                    hoodAngle += 0.05;
+                if(hoodAngle < 1){
+                    hoodAngle += 0.1;
                 }
             }
 
@@ -294,13 +294,18 @@ public class OnePersonOpMode extends LinearOpMode {
 
             // Carousel Navigation
             //Left and Right go to intake positions, aka the odd numbered indices on the pos array
+
             if (gamepad2.dpadLeftWasPressed()) {
-                carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
-                carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
+                if(vertTranAngle == transMin) {
+                    carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
+                    carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
+                }
             }
             if (gamepad2.dpadRightWasPressed()) {
-                carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
-                carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
+                if(vertTranAngle == transMin) {
+                    carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
+                    carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
+                }
             }
 
             // Update Carousel PID
@@ -515,7 +520,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 .setDrawTagOutline(true)
                 .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(0, 0, 0, 0)//CAMERA CALLIBRATION VALUES
+                .setLensIntrinsics(516.3798424, 515.8231389, 328.1776587, 237.3725503)//CAMERA CALLIBRATION VALUES
                 .build();
 
         aprilTag.setDecimation(4);
