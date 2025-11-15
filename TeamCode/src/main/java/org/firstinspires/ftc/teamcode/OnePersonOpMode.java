@@ -55,9 +55,6 @@ public class OnePersonOpMode extends LinearOpMode {
     private AnalogInput spinEncoder;
 
     //endregion
-   
-    //EXTRA VARS
-    private double vertTranAngle = 0;
 
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
@@ -114,6 +111,13 @@ public class OnePersonOpMode extends LinearOpMode {
         double intakePower = 0;
         boolean flyOn = false;
 
+        //Tuning Variables
+
+        double lastPAdjustTime = 0;
+        double lastIAdjustTime = 0;
+        double lastDAdjustTime = 0;
+        double lastFAdjustTime = 0;
+
         // Drive Variables
         double drive = 0;
         double strafe = 0;
@@ -123,6 +127,12 @@ public class OnePersonOpMode extends LinearOpMode {
         double flySpeed = 1160;
         
         double lastTime = 0;
+
+        //Transfer
+        double vertTranAngle = 0;
+        double transMin = 0.05;//when transfers up
+        double transMid = 0.25;//when its under intake
+        double transMax = 0.45;//shoot
         
         //endregion
 
@@ -168,6 +178,8 @@ public class OnePersonOpMode extends LinearOpMode {
         telemetry.update();
         waitForStart();
         runtime.reset();
+
+        vertTrans.setPosition(transMin);
 
         while (opModeIsActive()) {
 
@@ -223,7 +235,6 @@ public class OnePersonOpMode extends LinearOpMode {
                 else{
                     hood.setPosition(HOOD_POSITIONS[4]);
                 }
-                flySpeed = 5.47 * range + 933.0;
                 telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
                 telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
                 telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
@@ -251,17 +262,84 @@ public class OnePersonOpMode extends LinearOpMode {
 
             //region TRANSFER CONTROL
             if (gamepad2.triangleWasPressed()) {
-                vertTranAngle = vertTranAngle == 1.0? 0:1.0;
+                if (vertTranAngle == transMax) {
+                    vertTranAngle = transMid;
+                }else{
+                    vertTranAngle = transMax;
+                }
+            }
+
+            if (gamepad2.squareWasPressed()) {
+                if (vertTranAngle == transMid) {
+                    vertTranAngle = transMin;
+                }else{
+                    vertTranAngle = transMid;
+                }
             }
 
             vertTrans.setPosition(vertTranAngle);
 
             //endregion
 
-            //region CAROUSEL CONTROL
+            //region ADJUST CAROUSEL PID
             double nowMs = runtime.milliseconds();
             double dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-            if (dtSec <= 0.0) dtSec = 1.0 / 50.0;
+            if (dtSec <=0.0) dtSec = 1.0/50.0;
+            pidLastTimeMs = nowMs;
+
+            // === PIDF tuning via Gamepad2 ===
+            double adjustStepP = 0.0002;
+            double adjustStepI = 0.00001;
+            double adjustStepD = 0.00001;
+            double adjustStepF = 0.002;
+            double debounceTime = 50;
+
+            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                if (gamepad1.dpad_up) {
+                    pidKp += adjustStepP;
+                    lastPAdjustTime = runtime.milliseconds();
+                }
+                if (gamepad1.dpad_down) {
+                    pidKp += adjustStepP;
+                    lastPAdjustTime = runtime.milliseconds();
+                }
+            }
+            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+                if (gamepad1.dpad_right) {
+                    pidKp += adjustStepI;
+                    lastIAdjustTime = runtime.milliseconds();
+                }
+                if (gamepad1.dpad_left) {
+                    pidKp += adjustStepI;
+                    lastIAdjustTime = runtime.milliseconds();
+                }
+            }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.dpad_up) {
+                    pidKp += adjustStepD;
+                    lastPAdjustTime = runtime.milliseconds();
+                }
+                if (gamepad2.dpad_down) {
+                    pidKp += adjustStepD;
+                    lastPAdjustTime = runtime.milliseconds();
+                }
+            }
+
+            // Safety clamp
+            pidKp = Math.max(0, pidKp);
+            pidKi = Math.max(0, pidKi);
+            pidKd = Math.max(0, pidKd);
+            pidKf = Math.max(0, pidKf);
+
+            // Display PID constants on telemetry
+            telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
+            telemetry.addData("kP", "%.6f", pidKp);
+            telemetry.addData("kI", "%.6f", pidKi);
+            telemetry.addData("kD", "%.6f", pidKd);
+            telemetry.addData("kF", "%.6f", pidKf);
+            //endregion
+
+            //region CAROUSEL CONTROL
 
             // Carousel Navigation
             //Left and Right go to intake positions, aka the odd numbered indices on the pos array
@@ -272,15 +350,6 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad2.dpadRightWasPressed()) {
                 carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
                 carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
-            }
-            //Down and Up go to transfer positions, aka the even numbered indices on the pos array
-            if (gamepad2.dpadUpWasPressed()) {
-                carouselIndex += carouselIndex % 2 == 0 ? 1 : 0;
-                carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
-            }
-            if (gamepad2.dpadDownWasPressed()) {
-                carouselIndex += carouselIndex % 2 == 0 ? 1 : 0;
-                carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
             }
 
             // Update Carousel PID
@@ -376,8 +445,7 @@ public class OnePersonOpMode extends LinearOpMode {
             }
             else{
                 turn  = -gamepad1.right_stick_x;
-                lastHeadingError = 0;
-                pidTimer.reset();
+                lastHeadingError = 0;                 pidTimer.reset();
             }
 
             //endregion
@@ -470,6 +538,7 @@ public class OnePersonOpMode extends LinearOpMode {
         // telemetry for PID (keeps concise, add more if you want)
         telemetry.addData("Carousel Target", "%.1f°", targetAngle);
 
+
     }
 
     private double clamp(double v, double lo, double hi) {
@@ -479,6 +548,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private double mapVoltageToAngle360(double v, double vMin, double vMax) {
         double angle = 360.0 * (v - vMin) / (vMax - vMin);
         angle = (angle + 360) % 360;
+        telemetry.addData("Encoder: ", angle);
         return angle;
     }
 
