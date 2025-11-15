@@ -151,11 +151,11 @@ public class RedCloseAuto extends LinearOpMode {
             sWrist.setPosition(0);
             Sample = hardwareMap.get(Servo.class, "Sample");
             Sample.setPosition(0);
-        Lift lift = new Lift(hardwareMap);
+        /*Lift lift = new Lift(hardwareMap);
         Pivot pivot = new Pivot(hardwareMap);
         Intake intake = new Intake(hardwareMap);
         Wrist wrist = new Wrist(hardwareMap);
-        SampleArm sampleArm = new SampleArm(hardwareMap);
+        SampleArm sampleArm = new SampleArm(hardwareMap);*/
         MecanumDrive drive = new MecanumDrive(hardwareMap, STARTING_POSE);
 
         TrajectoryActionBuilder pushSamples = drive.actionBuilder(SPECIMEN_DROP)
@@ -187,10 +187,10 @@ public class RedCloseAuto extends LinearOpMode {
         TrajectoryActionBuilder placeSpecimen = drive.actionBuilder(STARTING_POSE)
                 .strafeTo(SPECIMEN_DROP.position)
                 //wait ant put speciamskdfjas;dlfkja onto the cage
-                .waitSeconds(1)
-                .stopAndAdd(pivot.pivotDown(800))
+                .waitSeconds(1);
+                /*.stopAndAdd(pivot.pivotDown(800))
                 .stopAndAdd(lift.liftDown(1000));
-//                .stopAndAdd(intake.intakeDown());
+//                .stopAndAdd(intake.intakeDown());*/
 
 
         TrajectoryActionBuilder placeSpecimen1 = drive.actionBuilder(new Pose2d(45, -55, Math.toRadians(90)))
@@ -253,6 +253,7 @@ public class RedCloseAuto extends LinearOpMode {
          autoSequence.build()
          )
          );**/
+        /*
         Actions.runBlocking(//lift arm and move to specimen at same time
                 new ParallelAction(
                         //pivot.pivotUp(800),
@@ -591,6 +592,6 @@ public class RedCloseAuto extends LinearOpMode {
         public Action SampleArmDown() {
 
             return new SampleArm.SampleDown();
-        }
+        }*/
     }
 }
