@@ -51,8 +51,8 @@ public class OnePersonOpMode extends LinearOpMode {
     private CRServo spin = null;    // spino
     private Servo hood;
 
-    private Servo turret1;
-    private Servo turret2;
+    private CRServo turret1;
+    private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
@@ -85,7 +85,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
 
     //VISION STUFF
-    private static final int DESIRED_TAG_ID = 23;
+    private static final int DESIRED_TAG_ID = 20;
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;
     private AprilTagDetection desiredTag;
@@ -154,14 +154,14 @@ public class OnePersonOpMode extends LinearOpMode {
         hood = hardwareMap.get(Servo.class, "hood");
         vertTrans = hardwareMap.get(Servo.class, "vtrans");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
-        turret1 = hardwareMap.get(Servo.class, "turret1");
-        turret2 = hardwareMap.get(Servo.class, "turret2");
+        turret1 = hardwareMap.get(CRServo.class, "turret1");
+        turret2 = hardwareMap.get(CRServo.class, "turret2");
       
         // DIRECTIONS
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        backLeft.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.FORWARD);
-        backRight.setDirection(DcMotor.Direction.FORWARD);
+        frontLeft.setDirection(DcMotor.Direction.FORWARD);
+        backLeft.setDirection(DcMotor.Direction.FORWARD);
+        frontRight.setDirection(DcMotor.Direction.REVERSE);
+        backRight.setDirection(DcMotor.Direction.REVERSE);
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
@@ -170,8 +170,8 @@ public class OnePersonOpMode extends LinearOpMode {
         spin.setDirection(CRServo.Direction.FORWARD);
         hood.setDirection(Servo.Direction.FORWARD);
 
-        turret1.setDirection(Servo.Direction.FORWARD);
-        turret2.setDirection(Servo.Direction.FORWARD);
+        turret1.setDirection(CRServo.Direction.REVERSE);
+        turret2.setDirection(CRServo.Direction.REVERSE);
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -193,7 +193,6 @@ public class OnePersonOpMode extends LinearOpMode {
             //region DRIVE
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
-            turn = -gamepad1.right_stick_x;
             //endregion
 
             //region CAMERA
@@ -243,6 +242,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
                 telemetry.addData("Yaw","%3.0f degrees", desiredTag.ftcPose.yaw);
             }
+            //endregion
 
             //region INTAKE CONTROL
             if (gamepad1.rightBumperWasPressed()) {
@@ -364,11 +364,11 @@ public class OnePersonOpMode extends LinearOpMode {
                     double derivative = (headingError - lastHeadingError) / deltaTime;
                     pidTimer.reset();
 
-                    if (Math.abs(headingError) < 2.0) {
-                        turn = 0;
-                    } else {
-                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-                    }
+//                    if (Math.abs(headingError) < 2.0) {
+//                        turn = 0;
+//                    } else {
+//                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+//                    }
 
                     lastHeadingError = headingError;
 
@@ -378,8 +378,8 @@ public class OnePersonOpMode extends LinearOpMode {
                     }else if(turretAngle > 0){
                         turretAngle = 0.5 + turretAngle;
                     }
-                    turret1.setPosition(turretAngle);
-                    turret2.setPosition(turretAngle);
+                    turret1.setPower(turretAngle);
+                    turret2.setPower(turretAngle);
 
                     telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
                 }
