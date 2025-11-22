@@ -50,6 +50,9 @@ public class OnePersonOpMode extends LinearOpMode {
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
     private Servo hood;
+
+    private Servo turret1;
+    private Servo turret2;
     private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
@@ -151,7 +154,8 @@ public class OnePersonOpMode extends LinearOpMode {
         hood = hardwareMap.get(Servo.class, "hood");
         vertTrans = hardwareMap.get(Servo.class, "vtrans");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
-        
+        turret1 = hardwareMap.get(Servo.class, "turret1");
+        turret2 = hardwareMap.get(Servo.class, "turret2");
       
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
@@ -166,10 +170,11 @@ public class OnePersonOpMode extends LinearOpMode {
         spin.setDirection(CRServo.Direction.FORWARD);
         hood.setDirection(Servo.Direction.FORWARD);
 
+        turret1.setDirection(Servo.Direction.FORWARD);
+        turret2.setDirection(Servo.Direction.FORWARD);
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        
         //endregion
 
         setManualExposure(4, 200);  // Use low exposure time to reduce motion blur
@@ -220,18 +225,18 @@ public class OnePersonOpMode extends LinearOpMode {
                 adjustDecimation(desiredTag.ftcPose.range);
                 double range = desiredTag.ftcPose.range;
 
-//                if(range <= 13) {
-//                    hood.setPosition(HOOD_POSITIONS[0]);
-//                }
-//                else if (range <= 25){
-//                    hood.setPosition(HOOD_POSITIONS[1]);
-//                }
-//                else if (range <= 38){
-//                    hood.setPosition(HOOD_POSITIONS[2]);
-//                }
-//                else{
-//                    hood.setPosition(HOOD_POSITIONS[3]);
-//                }
+                if(range <= 13) {
+                    hood.setPosition(HOOD_POSITIONS[0]);
+                }
+                else if (range <= 25){
+                    hood.setPosition(HOOD_POSITIONS[1]);
+                }
+                else if (range <= 38){
+                    hood.setPosition(HOOD_POSITIONS[2]);
+                }
+                else{
+                    hood.setPosition(HOOD_POSITIONS[3]);
+                }
 
                 telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
                 telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
@@ -325,7 +330,7 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
-//df
+
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
             double baseF = 12.0 / 2450.0;
@@ -366,6 +371,15 @@ public class OnePersonOpMode extends LinearOpMode {
                     }
 
                     lastHeadingError = headingError;
+
+                    double turretAngle = lastKnownBearing/360;
+                    if(turretAngle < 0){
+                        turretAngle = 0.5 - turretAngle;
+                    }else if(turretAngle > 0){
+                        turretAngle = 0.5 + turretAngle;
+                    }
+                    turret1.setPosition(turretAngle);
+                    turret2.setPosition(turretAngle);
 
                     telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
                 }
@@ -520,7 +534,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 .setDrawTagOutline(true)
                 .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(516.3798424, 515.8231389, 328.1776587, 237.3725503)//CAMERA CALLIBRATION VALUES
+                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)//CAMERA CALLIBRATION VALUES
                 .build();
 
         aprilTag.setDecimation(4);
