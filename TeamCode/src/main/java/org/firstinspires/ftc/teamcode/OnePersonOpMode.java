@@ -351,7 +351,7 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad1.crossWasPressed()){
                 facingGoal = !facingGoal;
             }
-
+//df
             if (facingGoal) {
                 if (targetFound) {
                     lastKnownBearing = desiredTag.ftcPose.bearing;
