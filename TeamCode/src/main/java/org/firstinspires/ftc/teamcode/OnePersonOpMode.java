@@ -56,6 +56,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
+    private AnalogInput turretEncoder;
 
     //endregion
 
@@ -72,6 +73,17 @@ public class OnePersonOpMode extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
 
+    private double tuKp = 0;
+    private double tuKi = 0;
+    private double tuKd = 0.00000;
+    private double tuKf = 0.0;
+
+    // Carousel PID State
+    private double tuIntegral = 0.0;
+    private double tuLastError = 0.0;
+    private double tuIntegralLimit = 500.0;
+    private double tuLastTimeMs = 0.0;
+
     // Carousel Control Parameters
     private final double positionToleranceDeg = 2.0;
     private final double outputDeadband = 0.03;
@@ -82,7 +94,10 @@ public class OnePersonOpMode extends LinearOpMode {
     private int carouselIndex = 0;
     private int prevCarxouselIndex = 0;
 
-
+    private double turretTrackingOffset = 0;
+    private double lastTurretEncoder = 0;
+    private static final double TURRET_TRACKING_GAIN = 0.2;
+    private static final double TURRET_DERIVATIVE_GAIN = 0.9;
 
     //VISION STUFF
     private static final int DESIRED_TAG_ID = 20;
@@ -156,7 +171,7 @@ public class OnePersonOpMode extends LinearOpMode {
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turret1 = hardwareMap.get(CRServo.class, "turret1");
         turret2 = hardwareMap.get(CRServo.class, "turret2");
-      
+        turretEncoder = hardwareMap.get(AnalogInput.class, "turretEncoder");
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -373,14 +388,15 @@ public class OnePersonOpMode extends LinearOpMode {
                     lastHeadingError = headingError;
 
                     double turretAngle = lastKnownBearing/360;
-                    if(turretAngle < 0){
+                    if(turretAngle <-2){
                         turretAngle = 0.5 - turretAngle;
-                    }else if(turretAngle > 0){
+                    }else if(turretAngle > 2){
                         turretAngle = 0.5 + turretAngle;
                     }
                     turret1.setPower(turretAngle);
                     turret2.setPower(turretAngle);
 
+                    updateTurretPID(turretAngle, dtSec);
                     telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
                 }
                 else {
@@ -456,6 +472,52 @@ public class OnePersonOpMode extends LinearOpMode {
         frontRight.setPower(frontRightPower);
         backLeft.setPower(backLeftPower);
         backRight.setPower(backRightPower);
+    }
+    private void updateTurretPID(double targetAngle, double dt) {
+        // read angles 0..360
+        double angle = mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
+
+        //raw error
+        double rawError = -angleError(targetAngle, angle);
+
+        //adds a constant term if it's in a certain direction.
+        // we either do this or we change the pid values for each direction.
+        // gonna try and see if simpler method works tho
+        double compensatedTarget = targetAngle;
+        if (rawError < 0) { // moving CCW
+            compensatedTarget = (targetAngle) % 360.0;
+        }
+        // compute shortest signed error [-180,180]
+        double error = -angleError(compensatedTarget, angle);
+
+        // integral with anti-windup
+        integral += error * dt;
+        integral = clamp(integral, -integralLimit, integralLimit);
+
+        // derivative
+        double d = (error - lastError) / Math.max(dt, 1e-6);
+
+        // PIDF output (interpreted as servo power)
+        double out = tuKp * error +tuKi * integral + tuKd * d;
+
+        // small directional feedforward to overcome stiction when error significant
+        if (Math.abs(error) > 1.0) out += tuKf * Math.signum(error);
+
+        // clamp to [-1,1] and apply deadband
+        out = Range.clip(out, -1.0, 1.0);
+        if (Math.abs(out) < outputDeadband) out = 0.0;
+
+        // if within tolerance, zero outputs and decay integrator to avoid bumping
+        if (Math.abs(error) <= positionToleranceDeg) {
+            out = 0.0;
+            integral *= 0.2;
+        }
+        turret1.setPower(out);
+        turret2.setPower(out);
+
+        tuLastError = error;
+
+        telemetry.addData("Turret Target", "%.1f", targetAngle);
     }
 
     private void updateCarouselPID(double targetAngle, double dt) {
