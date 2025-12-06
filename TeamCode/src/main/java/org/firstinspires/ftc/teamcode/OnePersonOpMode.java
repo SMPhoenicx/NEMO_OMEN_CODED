@@ -76,7 +76,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
     private double tuKp = 0;
     private double tuKi = 0;
-    private double tuKd = 0.00000;
+    private double tuKd = 0.0;
     private double tuKf = 0.0;
 
     // Carousel PID State
@@ -130,6 +130,7 @@ public class OnePersonOpMode extends LinearOpMode {
         double intakePower = 0;
         boolean flyOn = false;
         boolean transferOn = false;
+        boolean turretOn = false;
 
         //Tuning Variables
 
@@ -361,6 +362,13 @@ public class OnePersonOpMode extends LinearOpMode {
             updateCarouselPID(targetAngle, dtSec);
             //endregion
 
+            if (gamepad2.squareWasPressed()) {
+                targetAngle = 90;
+            }
+            else{
+                targetAngle = 0;
+            }
+
             if (gamepad2.dpadLeftWasPressed()) {
                 if(vertTranAngle == transMin) {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
@@ -497,6 +505,8 @@ public class OnePersonOpMode extends LinearOpMode {
                     }
 
 
+
+
                     // Safety clamp
                     tuKp = Math.max(0, tuKp);
                     tuKi = Math.max(0, tuKi);
@@ -598,6 +608,7 @@ public class OnePersonOpMode extends LinearOpMode {
         tuLastError = error;
 
         telemetry.addData("Turret Target", "%.1f", targetAngle);
+
     }
 
     private void updateCarouselPID(double targetAngle, double dt) {

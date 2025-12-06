@@ -45,22 +45,27 @@ public class ThreeBallAuto extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
+    private DcMotor transfer1 = null;
 
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
     private Servo hood;
-    private final double[] HOOD_POSITIONS = {0.2, 0.4, 0.6, 0.8, 1};//may have to change
+
+    private CRServo turret1;
+    private CRServo turret2;
+    private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
+    private AnalogInput turretEncoder;
 
     //endregion
 
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
-    private double pidKp = 0.0057;
-    private double pidKi = 0.00166;
-    private double pidKd = 0.00002;
+    private double pidKp = 0.0160;
+    private double pidKi = 0.0018;
+    private double pidKd = 0.0004;
     private double pidKf = 0.0;
 
     // Carousel PID State
@@ -68,6 +73,17 @@ public class ThreeBallAuto extends LinearOpMode {
     private double lastError = 0.0;
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
+
+    private double tuKp = 0;
+    private double tuKi = 0;
+    private double tuKd = 0.00000;
+    private double tuKf = 0.0;
+
+    // Carousel PID State
+    private double tuIntegral = 0.0;
+    private double tuLastError = 0.0;
+    private double tuIntegralLimit = 500.0;
+    private double tuLastTimeMs = 0.0;
 
     // Carousel Control Parameters
     private final double positionToleranceDeg = 2.0;
@@ -79,19 +95,41 @@ public class ThreeBallAuto extends LinearOpMode {
     private int carouselIndex = 0;
     private int prevCarxouselIndex = 0;
 
+    private double turretTrackingOffset = 0;
+    private double lastTurretEncoder = 0;
+    private static final double TURRET_TRACKING_GAIN = 0.2;
+    private static final double TURRET_DERIVATIVE_GAIN = 0.9;
+
+    //VISION STUFF
+    private static final int DESIRED_TAG_ID = 20;
+    private VisionPortal visionPortal;
+    private AprilTagProcessor aprilTag;
+    private AprilTagDetection desiredTag;
+    private boolean facingGoal = false;
+    private double lastKnownBearing = 0;
+    private double lastKnownRange = 0;
+    private long lastDetectionTime = 0;
+    private static final long PREDICTION_TIMEOUT = 500;
+    private double lastHeadingError = 0;
+
 
 
     private ElapsedTime runtime = new ElapsedTime();
 
     @Override
     public void runOpMode() {
-
+        boolean targetFound = false;
+        boolean localizeApril = true;
+        double aprilLocalizationTimeout=0;
+        desiredTag  = null;
+        initAprilTag();
         //region OPERATIONAL VARIABLES
         // Mechanism States
         boolean tranOn = false;
         boolean intakeOn = false;
         double intakePower = 0;
         boolean flyOn = false;
+        boolean transferOn = false;
 
         //Tuning Variables
 
@@ -99,6 +137,8 @@ public class ThreeBallAuto extends LinearOpMode {
         double lastIAdjustTime = 0;
         double lastDAdjustTime = 0;
         double lastFAdjustTime = 0;
+
+        double hoodAngle =0;
 
         // Drive Variables
         double drive = 0;
@@ -114,41 +154,47 @@ public class ThreeBallAuto extends LinearOpMode {
         double vertTranAngle = 0;
         double transMin = 0.05;//when transfers up
         double transMid = 0.25;//when its under intake
-        double transMax = 0.45;//shoot
+        double transMax = 0.9;//shoot
 
         //endregion
 
         //region HARDWARE INITIALIZATION
         // Initialize Drive Motors
-        frontLeft = hardwareMap.get(DcMotor.class, "fl");
+        frontLeft  = hardwareMap.get(DcMotor.class, "fl");
         frontRight = hardwareMap.get(DcMotor.class, "fr");
-        backLeft = hardwareMap.get(DcMotor.class, "bl");
-        backRight = hardwareMap.get(DcMotor.class, "br");
-        fly1 = hardwareMap.get(DcMotorEx.class, "fly1");
-        fly2 = hardwareMap.get(DcMotorEx.class, "fly2");
-        intake = hardwareMap.get(DcMotor.class, "in");
+        backLeft   = hardwareMap.get(DcMotor.class, "bl");
+        backRight  = hardwareMap.get(DcMotor.class, "br");
+        fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
+        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
+        fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
+        intake     = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         vertTrans = hardwareMap.get(Servo.class, "vtrans");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
-
-
+        turret1 = hardwareMap.get(CRServo.class, "turret1");
+        turret2 = hardwareMap.get(CRServo.class, "turret2");
+        turretEncoder = hardwareMap.get(AnalogInput.class, "turretEncoder");
         // DIRECTIONS
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        backLeft.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.FORWARD);
-        backRight.setDirection(DcMotor.Direction.FORWARD);
+        frontLeft.setDirection(DcMotor.Direction.FORWARD);
+        backLeft.setDirection(DcMotor.Direction.FORWARD);
+        frontRight.setDirection(DcMotor.Direction.REVERSE);
+        backRight.setDirection(DcMotor.Direction.REVERSE);
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
+        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         spin.setDirection(CRServo.Direction.FORWARD);
         hood.setDirection(Servo.Direction.FORWARD);
 
+        turret1.setDirection(CRServo.Direction.REVERSE);
+        turret2.setDirection(CRServo.Direction.REVERSE);
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        AnalogInput spinAnalog = hardwareMap.get(AnalogInput.class, "espin");
 
         //endregion
 
