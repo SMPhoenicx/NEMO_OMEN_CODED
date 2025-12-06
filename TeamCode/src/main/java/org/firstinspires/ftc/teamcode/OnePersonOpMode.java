@@ -76,7 +76,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
     private double tuKp = 0;
     private double tuKi = 0;
-    private double tuKd = 0.00000;
+    private double tuKd = 0.0;
     private double tuKf = 0.0;
 
     // Carousel PID State
