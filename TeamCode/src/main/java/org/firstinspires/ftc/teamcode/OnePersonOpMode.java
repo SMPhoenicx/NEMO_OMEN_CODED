@@ -676,7 +676,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 .setDrawTagOutline(true)
                 .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)//CAMERA CALLIBRATION VALUES
+                .setLensIntrinsics(1364.84, 1364.84, 794.707, 525.739)//CAMERA CALLIBRATION VALUES
                 .build();
 
         aprilTag.setDecimation(4);
