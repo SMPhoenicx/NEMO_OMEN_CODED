@@ -487,28 +487,28 @@ public class OnePersonOpMode extends LinearOpMode {
 
                     if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                         if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
-                        if (gamepad2.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                     }
                     if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
                         if (gamepad1.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-                        if (gamepad2.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
                     }
                     if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
-                        if (gamepad2.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
-                        if (gamepad2.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                     }
 
 
                     // Safety clamp
-                    pidKp = Math.max(0, pidKp);
-                    pidKi = Math.max(0, pidKi);
-                    pidKd = Math.max(0, pidKd);
+                    tuKp = Math.max(0, tuKp);
+                    tuKi = Math.max(0, tuKi);
+                    tuKd = Math.max(0, tuKd);
 
                     // Display PID constants on telemetry
                     telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
-                    telemetry.addData("kP", "%.4f", pidKp);
-                    telemetry.addData("kI", "%.4f", pidKi);
-                    telemetry.addData("kD", "%.4f", pidKd);
+                    telemetry.addData("kP", "%.4f", tuKp);
+                    telemetry.addData("kI", "%.4f", tuKi);
+                    telemetry.addData("kD", "%.4f", tuKd);
                 }
             }
             else{
