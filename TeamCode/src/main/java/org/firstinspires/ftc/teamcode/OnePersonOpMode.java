@@ -154,8 +154,8 @@ public class OnePersonOpMode extends LinearOpMode {
         double vertTranAngle = 0;
         double transMin = 0.05;//when transfers up
         double transMid = 0.25;//when its under intake
-        double transMax = 0.45;//shoot
-        
+        double transMax = 0.9;//shoot
+
         //endregion
 
         //region HARDWARE INITIALIZATION
@@ -284,13 +284,6 @@ public class OnePersonOpMode extends LinearOpMode {
             }
             //endregion
 
-            if (gamepad1.rightBumperWasPressed()) {
-                intakePower = 1;
-                intakeOn = !intakeOn;
-            }
-            else {
-                intake.setPower(0);
-            }
             //region TRANSFER CONTROL
             if (gamepad2.triangleWasPressed()) {
                 if (vertTranAngle == transMax) {
@@ -330,12 +323,12 @@ public class OnePersonOpMode extends LinearOpMode {
 
             // ENCODING FOR SERVOS
             double volt = spinAnalog.getVoltage();
-
+/*
             // === PIDF tuning via Gamepad2 ===
-            double adjustStepP = 0.00002;
-            double adjustStepI = 0.00001;
-            double adjustStepD = 0.0002;
-            double debounceTime = 250; // milliseconds
+            double adjustStepP = 0.0002;
+            double adjustStepI = 0.0002;
+            double adjustStepD = 0.00001;
+            double debounceTime = 175; // milliseconds
 
             if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { pidKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
@@ -362,7 +355,7 @@ public class OnePersonOpMode extends LinearOpMode {
             telemetry.addData("kI", "%.4f", pidKi);
             telemetry.addData("kD", "%.4f", pidKd);
             //endregion
-
+*/
             // always run PID towards the current selected preset while opMode active
             double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
             updateCarouselPID(targetAngle, dtSec);
@@ -418,6 +411,9 @@ public class OnePersonOpMode extends LinearOpMode {
             }
             if (transferOn) {
                 transfer1.setPower(1);
+            }
+            else{
+                transfer1.setPower(0);
             }
 
             if (gamepad1.crossWasPressed()){
@@ -484,6 +480,35 @@ public class OnePersonOpMode extends LinearOpMode {
                         pidTimer.reset();
                         telemetry.addData("Tracking", "LOST");
                     }
+                    double adjustStepP = 0.0002;
+                    double adjustStepI = 0.0002;
+                    double adjustStepD = 0.00001;
+                    double debounceTime = 175; // milliseconds
+
+                    if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                        if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                        if (gamepad2.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                    }
+                    if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+                        if (gamepad1.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                        if (gamepad2.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                    }
+                    if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                        if (gamepad2.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                        if (gamepad2.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                    }
+
+
+                    // Safety clamp
+                    pidKp = Math.max(0, pidKp);
+                    pidKi = Math.max(0, pidKi);
+                    pidKd = Math.max(0, pidKd);
+
+                    // Display PID constants on telemetry
+                    telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
+                    telemetry.addData("kP", "%.4f", pidKp);
+                    telemetry.addData("kI", "%.4f", pidKi);
+                    telemetry.addData("kD", "%.4f", pidKd);
                 }
             }
             else{
