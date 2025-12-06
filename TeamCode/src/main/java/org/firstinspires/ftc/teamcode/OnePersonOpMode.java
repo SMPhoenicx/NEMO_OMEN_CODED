@@ -441,13 +441,11 @@ public class OnePersonOpMode extends LinearOpMode {
                     lastHeadingError = headingError;
 
                     double turretAngle = lastKnownBearing/360;
-                    if(turretAngle <-2){
+                    if(turretAngle <-0.0055){
                         turretAngle = 0.5 - turretAngle;
-                    }else if(turretAngle > 2){
+                    }else if(turretAngle > 0.0055){
                         turretAngle = 0.5 + turretAngle;
                     }
-                    turret1.setPower(turretAngle);
-                    turret2.setPower(turretAngle);
 
                     updateTurretPID(turretAngle, dtSec);
                     telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
