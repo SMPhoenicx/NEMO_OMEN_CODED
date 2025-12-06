@@ -45,6 +45,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
+    private DcMotor transfer1 = null;
     
     // Servos
     private Servo vertTrans;  // Vertical actuator
@@ -62,9 +63,9 @@ public class OnePersonOpMode extends LinearOpMode {
 
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
-    private double pidKp = 0.0057;
-    private double pidKi = 0.00166;
-    private double pidKd = 0.00002;
+    private double pidKp = 0.0160;
+    private double pidKi = 0.0018;
+    private double pidKd = 0.0004;
     private double pidKf = 0.0;
 
     // Carousel PID State
@@ -128,6 +129,7 @@ public class OnePersonOpMode extends LinearOpMode {
         boolean intakeOn = false;
         double intakePower = 0;
         boolean flyOn = false;
+        boolean transferOn = false;
 
         //Tuning Variables
 
@@ -163,6 +165,7 @@ public class OnePersonOpMode extends LinearOpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
+        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -180,6 +183,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
+        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
         
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -190,6 +194,8 @@ public class OnePersonOpMode extends LinearOpMode {
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        AnalogInput spinAnalog = hardwareMap.get(AnalogInput.class, "espin");
+
         //endregion
 
         setManualExposure(4, 200);  // Use low exposure time to reduce motion blur
@@ -278,6 +284,13 @@ public class OnePersonOpMode extends LinearOpMode {
             }
             //endregion
 
+            if (gamepad1.rightBumperWasPressed()) {
+                intakePower = 1;
+                intakeOn = !intakeOn;
+            }
+            else {
+                intake.setPower(0);
+            }
             //region TRANSFER CONTROL
             if (gamepad2.triangleWasPressed()) {
                 if (vertTranAngle == transMax) {
@@ -315,6 +328,46 @@ public class OnePersonOpMode extends LinearOpMode {
             // Carousel Navigation
             //Left and Right go to intake positions, aka the odd numbered indices on the pos array
 
+            // ENCODING FOR SERVOS
+            double volt = spinAnalog.getVoltage();
+
+            // === PIDF tuning via Gamepad2 ===
+            double adjustStepP = 0.00002;
+            double adjustStepI = 0.00001;
+            double adjustStepD = 0.0002;
+            double debounceTime = 250; // milliseconds
+
+            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                if (gamepad1.dpad_right) { pidKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_left) { pidKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+                if (gamepad1.dpad_up) { pidKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { pidKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.dpad_up) { pidKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { pidKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+            }
+
+
+            // Safety clamp
+            pidKp = Math.max(0, pidKp);
+            pidKi = Math.max(0, pidKi);
+            pidKd = Math.max(0, pidKd);
+
+            // Display PID constants on telemetry
+            telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
+            telemetry.addData("kP", "%.4f", pidKp);
+            telemetry.addData("kI", "%.4f", pidKi);
+            telemetry.addData("kD", "%.4f", pidKd);
+            //endregion
+
+            // always run PID towards the current selected preset while opMode active
+            double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+            updateCarouselPID(targetAngle, dtSec);
+            //endregion
+
             if (gamepad2.dpadLeftWasPressed()) {
                 if(vertTranAngle == transMin) {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
@@ -328,9 +381,6 @@ public class OnePersonOpMode extends LinearOpMode {
                 }
             }
 
-            // Update Carousel PID
-            double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-            updateCarouselPID(targetAngle, dtSec);
             //endregion
 
             //region FLYWHEEL
@@ -345,6 +395,9 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
+            if (gamepad2.circleWasPressed()) {
+                transferOn = !transferOn;
+            }
 
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
@@ -358,9 +411,13 @@ public class OnePersonOpMode extends LinearOpMode {
             if (flyOn) {
                 fly1.setVelocity(flySpeed);
                 fly2.setVelocity(flySpeed);
-            } else {
+            }
+            else {
                 fly1.setVelocity(0);
                 fly2.setVelocity(0);
+            }
+            if (transferOn) {
+                transfer1.setPower(1);
             }
 
             if (gamepad1.crossWasPressed()){
