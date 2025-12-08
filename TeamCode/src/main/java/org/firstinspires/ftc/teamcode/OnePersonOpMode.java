@@ -76,7 +76,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
     private double tuKp = 0;
     private double tuKi = 0;
-    private double tuKd = 0.00000;
+    private double tuKd = 0.0;
     private double tuKf = 0.0;
 
     // Carousel PID State
@@ -130,6 +130,7 @@ public class OnePersonOpMode extends LinearOpMode {
         double intakePower = 0;
         boolean flyOn = false;
         boolean transferOn = false;
+        boolean turretOn = false;
 
         //Tuning Variables
 
@@ -361,6 +362,13 @@ public class OnePersonOpMode extends LinearOpMode {
             updateCarouselPID(targetAngle, dtSec);
             //endregion
 
+            if (gamepad2.squareWasPressed()) {
+                targetAngle = 90;
+            }
+            else{
+                targetAngle = 0;
+            }
+
             if (gamepad2.dpadLeftWasPressed()) {
                 if(vertTranAngle == transMin) {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
@@ -441,13 +449,11 @@ public class OnePersonOpMode extends LinearOpMode {
                     lastHeadingError = headingError;
 
                     double turretAngle = lastKnownBearing/360;
-                    if(turretAngle <-2){
+                    if(turretAngle <-0.0055){
                         turretAngle = 0.5 - turretAngle;
-                    }else if(turretAngle > 2){
+                    }else if(turretAngle > 0.0055){
                         turretAngle = 0.5 + turretAngle;
                     }
-                    turret1.setPower(turretAngle);
-                    turret2.setPower(turretAngle);
 
                     updateTurretPID(turretAngle, dtSec);
                     telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
@@ -497,6 +503,8 @@ public class OnePersonOpMode extends LinearOpMode {
                         if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                         if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                     }
+
+
 
 
                     // Safety clamp
@@ -600,6 +608,7 @@ public class OnePersonOpMode extends LinearOpMode {
         tuLastError = error;
 
         telemetry.addData("Turret Target", "%.1f", targetAngle);
+
     }
 
     private void updateCarouselPID(double targetAngle, double dt) {
@@ -678,7 +687,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 .setDrawTagOutline(true)
                 .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)//CAMERA CALLIBRATION VALUES
+                .setLensIntrinsics(1364.84, 1364.84, 794.707, 525.739)//CAMERA CALLIBRATION VALUES
                 .build();
 
         aprilTag.setDecimation(4);
