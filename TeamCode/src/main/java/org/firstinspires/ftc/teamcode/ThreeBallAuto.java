@@ -205,7 +205,15 @@ public class ThreeBallAuto extends LinearOpMode {
         waitForStart();
         runtime.reset();
         double timeChange = runtime.milliseconds();
+
+        //initialize carousel values
+        double nowMs;
+        double dtSec;
+        double targetAngle;
+
         while (opModeIsActive()) {
+            //old code preserved here
+            /*
             frontLeft.setPower(1);
             frontRight.setPower(1);
             backLeft.setPower(1);
@@ -213,7 +221,115 @@ public class ThreeBallAuto extends LinearOpMode {
             if(timeChange > 500){
                 break;
             }
+            */
+
+            //flyOn remains on entire time
+            flyOn = true;
+            fly1.setVelocity(flySpeed);
+            fly2.setVelocity(flySpeed);
+
+            //initial variables
+            int pathState = 0;
+            int angleIndex = 0;
+
+            //CASE 0: collecting the three balls
+            //have substates to check when the code reaches the target position
+            //have substates for every time the code loops
+            //only two main states (I think)
+            if (pathState == 0) {
+                intake.setPower(1); //start intake (value automatically 1)
+
+                //move to first ball (use roadrunner)
+
+                // loading the first ball
+                vertTrans.setPosition(transMid);
+                transfer1.setPower(1);
+                sleep(1000);
+                transfer1.setPower(0);
+                hood.setPosition(HOOD_POSITIONS[angleIndex]);
+                angleIndex++;
+
+                //spin the carousel (1)
+                nowMs = runtime.milliseconds();
+                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
+                if (dtSec <= 0.0) dtSec = 1.0 / 50.0;
+                pidLastTimeMs = nowMs;
+                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+                updateCarouselPID(targetAngle, dtSec); //import this
+
+                //move to next ball (use roadrunner)
+
+                //loading the second ball
+                vertTrans.setPosition(transMid);
+                transfer1.setPower(1);
+                sleep(1000);
+                transfer1.setPower(0);
+                hood.setPosition(HOOD_POSITIONS[angleIndex]);
+                angleIndex++;
+
+                //spin the carousel (2)
+                nowMs = runtime.milliseconds();
+                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
+                if (dtSec <=0.0) dtSec = 1.0/50.0;
+                pidLastTimeMs = nowMs;
+                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+                updateCarouselPID(targetAngle, dtSec);
+
+                //move to final ball (use roadrunner)
+
+                //loading the third ball
+                vertTrans.setPosition(transMid);
+                transfer1.setPower(1);
+                sleep(1000);
+                transfer1.setPower(0);
+                hood.setPosition(HOOD_POSITIONS[angleIndex]);
+
+                intake.setPower(0); //value automatically 0
+                pathState++;
+            }
+
+            //CASE 1: launching the balls
+            if (pathState == 1) {
+                //move to the shooting position using roadrunner
+                sleep(1000);
+
+                //shoot the ball
+                transfer1.setPower(1);
+                vertTrans.setPosition(transMax);
+                sleep(500);
+                transfer1.setPower(0);
+                vertTrans.setPosition(transMin);
+
+                //spin the carousel
+                nowMs = runtime.milliseconds();
+                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
+                if (dtSec <=0.0) dtSec = 1.0/50.0;
+                pidLastTimeMs = nowMs;
+                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+                updateCarouselPID(targetAngle, dtSec);
+
+                //shoot the ball
+                transfer1.setPower(1);
+                vertTrans.setPosition(transMax);
+                sleep(500);
+                transfer1.setPower(0);
+                vertTrans.setPosition(transMin);
+
+                //spin the carousel
+                nowMs = runtime.milliseconds();
+                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
+                if (dtSec <=0.0) dtSec = 1.0/50.0;
+                pidLastTimeMs = nowMs;
+                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+                updateCarouselPID(targetAngle, dtSec);
+
+                //shoot the ball
+                transfer1.setPower(1);
+                vertTrans.setPosition(transMax);
+                sleep(500);
+                transfer1.setPower(0);
+                vertTrans.setPosition(transMin);
+            }
         }
     }
-
 }
