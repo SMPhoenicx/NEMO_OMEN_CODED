@@ -155,7 +155,6 @@ public class ThreeBallAuto extends LinearOpMode {
         double transMax = 0.9;//shoot
 
         //endregion
-
         //region HARDWARE INITIALIZATION
         // Initialize Drive Motors
         frontLeft  = hardwareMap.get(DcMotor.class, "fl");
