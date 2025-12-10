@@ -611,7 +611,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
     }
 
-    private void updateCarouselPID(double targetAngle, double dt) {
+    void updateCarouselPID(double targetAngle, double dt) {
         double ccwOffset = -6.0;
         // read angles 0..360
         double angle = mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29);
