@@ -46,7 +46,6 @@ public class ThreeBallAuto extends LinearOpMode {
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
     private DcMotor transfer1 = null;
-
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -112,7 +111,7 @@ public class ThreeBallAuto extends LinearOpMode {
     private static final long PREDICTION_TIMEOUT = 500;
     private double lastHeadingError = 0;
 
-
+    OnePersonOpMode One = new OnePersonOpMode();
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -122,7 +121,6 @@ public class ThreeBallAuto extends LinearOpMode {
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
         desiredTag  = null;
-        initAprilTag();
         //region OPERATIONAL VARIABLES
         // Mechanism States
         boolean tranOn = false;
@@ -236,13 +234,13 @@ public class ThreeBallAuto extends LinearOpMode {
             //have substates to check when the code reaches the target position
             //have substates for every time the code loops
             //only two main states (I think)
-            if (pathState == 0) {
+            /*if (pathState == 0) {
                 intake.setPower(1); //start intake (value automatically 1)
 
                 //move to first ball (use roadrunner)
 
                 // loading the first ball
-                vertTrans.setPosition(transMid);
+                vertTrans.setPosition(trans);
                 transfer1.setPower(1);
                 sleep(1000);
                 transfer1.setPower(0);
@@ -286,7 +284,7 @@ public class ThreeBallAuto extends LinearOpMode {
 
                 intake.setPower(0); //value automatically 0
                 pathState++;
-            }
+            }*/
 
             //CASE 1: launching the balls
             if (pathState == 1) {
@@ -294,11 +292,12 @@ public class ThreeBallAuto extends LinearOpMode {
                 sleep(1000);
 
                 //shoot the ball
-                transfer1.setPower(1);
-                vertTrans.setPosition(transMax);
-                sleep(500);
-                transfer1.setPower(0);
+                intake.setPower(1);
                 vertTrans.setPosition(transMin);
+                sleep(500);
+                intake.setPower(0);
+                vertTrans.setPosition(transMax);
+                carouselIndex++;
 
                 //spin the carousel
                 nowMs = runtime.milliseconds();
@@ -306,14 +305,15 @@ public class ThreeBallAuto extends LinearOpMode {
                 if (dtSec <=0.0) dtSec = 1.0/50.0;
                 pidLastTimeMs = nowMs;
                 targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                updateCarouselPID(targetAngle, dtSec);
+                One.updateCarouselPID(targetAngle, dtSec);
 
                 //shoot the ball
-                transfer1.setPower(1);
-                vertTrans.setPosition(transMax);
-                sleep(500);
-                transfer1.setPower(0);
+                intake.setPower(1);
                 vertTrans.setPosition(transMin);
+                sleep(500);
+                intake.setPower(0);
+                vertTrans.setPosition(transMax);
+                carouselIndex++;
 
                 //spin the carousel
                 nowMs = runtime.milliseconds();
@@ -321,14 +321,14 @@ public class ThreeBallAuto extends LinearOpMode {
                 if (dtSec <=0.0) dtSec = 1.0/50.0;
                 pidLastTimeMs = nowMs;
                 targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                updateCarouselPID(targetAngle, dtSec);
+                One.updateCarouselPID(targetAngle, dtSec);
 
                 //shoot the ball
-                transfer1.setPower(1);
-                vertTrans.setPosition(transMax);
-                sleep(500);
-                transfer1.setPower(0);
+                intake.setPower(1);
                 vertTrans.setPosition(transMin);
+                sleep(500);
+                intake.setPower(0);
+                vertTrans.setPosition(transMax);
             }
         }
     }
