@@ -220,7 +220,7 @@ public class ThreeBallAuto extends LinearOpMode {
             }
             */
             //initial variables
-            int pathState = 1;
+            int pathState = 0;
             int angleIndex = 2;
             //flyOn remains on entire time
             flyOn = true;
@@ -285,7 +285,7 @@ public class ThreeBallAuto extends LinearOpMode {
             }*/
 
             //CASE 1: launching the balls
-            if (pathState == 1) {
+            if (pathState == 0) {
                 //move to the shooting position using roadrunner
                 sleep(1000);
 
