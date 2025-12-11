@@ -45,8 +45,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
-    private DcMotor transfer1 = null;
-    
+
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -129,7 +128,6 @@ public class OnePersonOpMode extends LinearOpMode {
         boolean intakeOn = false;
         double intakePower = 0;
         boolean flyOn = false;
-        boolean transferOn = false;
         boolean turretOn = false;
 
         //Tuning Variables
@@ -166,7 +164,6 @@ public class OnePersonOpMode extends LinearOpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
-        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -184,7 +181,6 @@ public class OnePersonOpMode extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
-        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
         
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -396,9 +392,7 @@ public class OnePersonOpMode extends LinearOpMode {
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
-            if (gamepad2.circleWasPressed()) {
-                transferOn = !transferOn;
-            }
+
 
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
@@ -417,12 +411,7 @@ public class OnePersonOpMode extends LinearOpMode {
                 fly1.setVelocity(0);
                 fly2.setVelocity(0);
             }
-            if (transferOn) {
-                transfer1.setPower(1);
-            }
-            else{
-                transfer1.setPower(0);
-            }
+
 
             if (gamepad1.crossWasPressed()){
                 facingGoal = !facingGoal;
@@ -611,7 +600,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
     }
 
-    private void updateCarouselPID(double targetAngle, double dt) {
+    void updateCarouselPID(double targetAngle, double dt) {
         double ccwOffset = -6.0;
         // read angles 0..360
         double angle = mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29);

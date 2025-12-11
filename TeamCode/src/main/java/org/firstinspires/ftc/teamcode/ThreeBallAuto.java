@@ -45,7 +45,6 @@ public class ThreeBallAuto extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
-    private DcMotor transfer1 = null;
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -162,7 +161,6 @@ public class ThreeBallAuto extends LinearOpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
-        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -180,7 +178,6 @@ public class ThreeBallAuto extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
-        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -286,7 +283,7 @@ public class ThreeBallAuto extends LinearOpMode {
             }*/
 
             //CASE 1: launching the balls
-            if (pathState == 1) {
+            if (pathState == 0) {
                 //move to the shooting position using roadrunner
                 sleep(1000);
 
