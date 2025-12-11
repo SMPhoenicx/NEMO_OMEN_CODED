@@ -28,14 +28,15 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Autonomous(name="ThreeBallAuto", group="Linear OpMode")
-public class ThreeBallAuto extends LinearOpMode {
+public class SixBallAuto extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
     final double TURN_GAIN = 0.02;
     final double MAX_AUTO_TURN = 0.4;
     //region HARDWARE DECLARATIONS
-// Drive Motors
+
+    // Drive Motors
     private DcMotor frontLeft = null;
     private DcMotor frontRight = null;
     private DcMotor backLeft = null;
@@ -45,6 +46,7 @@ public class ThreeBallAuto extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
+    private DcMotor transfer1 = null;
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -161,6 +163,7 @@ public class ThreeBallAuto extends LinearOpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
+        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -178,6 +181,7 @@ public class ThreeBallAuto extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
+        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -205,125 +209,122 @@ public class ThreeBallAuto extends LinearOpMode {
         double dtSec;
         double targetAngle;
 
+        //initial variables
+        int pathState = 0;
+        int subState = 0;
+        int angleIndex = 0;
+        int carouselIndex = 0;
+        int iter = 0;
+        nowMs = runtime.milliseconds();
+
         while (opModeIsActive()) {
-            //old code preserved here
-            /*
-            frontLeft.setPower(1);
-            frontRight.setPower(1);
-            backLeft.setPower(1);
-            backRight.setPower(1);
-            if(timeChange > 500){
-                break;
-            }
-            */
-            //initial variables
-            int pathState = 1;
-            int angleIndex = 2;
-            //flyOn remains on entire time
-            flyOn = true;
-            fly1.setVelocity(flySpeed);
-            fly2.setVelocity(flySpeed);
-            hood.setPosition(HOOD_POSITIONS[angleIndex]);
-
-            //CASE 0: collecting the three balls
-            //have substates to check when the code reaches the target position
-            //have substates for every time the code loops
-            //only two main states (I think)
-            /*if (pathState == 0) {
-                intake.setPower(1); //start intake (value automatically 1)
-
-                //move to first ball (use roadrunner)
-
-                // loading the first ball
-                vertTrans.setPosition(trans);
-                transfer1.setPower(1);
-                sleep(1000);
-                transfer1.setPower(0);
-                hood.setPosition(HOOD_POSITIONS[angleIndex]);
-                angleIndex++;
-
-                //spin the carousel (1)
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <= 0.0) dtSec = 1.0 / 50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                updateCarouselPID(targetAngle, dtSec); //import this
-
-                //move to next ball (use roadrunner)
-
-                //loading the second ball
-                vertTrans.setPosition(transMid);
-                transfer1.setPower(1);
-                sleep(1000);
-                transfer1.setPower(0);
-                hood.setPosition(HOOD_POSITIONS[angleIndex]);
-                angleIndex++;
-
-                //spin the carousel (2)
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <=0.0) dtSec = 1.0/50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                updateCarouselPID(targetAngle, dtSec);
-
-                //move to final ball (use roadrunner)
-
-                //loading the third ball
-                vertTrans.setPosition(transMid);
-                transfer1.setPower(1);
-                sleep(1000);
-                transfer1.setPower(0);
-                hood.setPosition(HOOD_POSITIONS[angleIndex]);
-
-                intake.setPower(0); //value automatically 0
-                pathState++;
-            }*/
-
-            //CASE 1: launching the balls
+            //case 0: loading the balls
             if (pathState == 0) {
-                //move to the shooting position using roadrunner
-                sleep(1000);
+                //robot motion
+                if (subState == 0) {
+                    if (opModeIsActive() && nowMs < 1000) {
+                        moveRobot(0.5, 0.5, 0.5);
+                    }
 
-                //shoot the ball
-                intake.setPower(1);
-                vertTrans.setPosition(transMin);
-                sleep(500);
-                intake.setPower(0);
-                vertTrans.setPosition(transMax);
-                carouselIndex++;
+                    if (opModeIsActive() && nowMs < 1500) {
+                        moveRobot(0, 0, 0);
+                        subState = 1;
+                    }
+                    nowMs = runtime.milliseconds();
+                }
+                //loading the ball
+                if (subState == 1) {
+                    if (nowMs < 1000) {
+                        vertTrans.setPosition(transMid);
+                        transfer1.setPower(1);
+                    }
 
-                //spin the carousel
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <=0.0) dtSec = 1.0/50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                One.updateCarouselPID(targetAngle, dtSec);
+                    if (nowMs < 1500) {
+                        transfer1.setPower(0);
+                        hood.setPosition(HOOD_POSITIONS[angleIndex]);
+                        subState = 2;
+                    }
 
-                //shoot the ball
-                intake.setPower(1);
-                vertTrans.setPosition(transMin);
-                sleep(500);
-                intake.setPower(0);
-                vertTrans.setPosition(transMax);
-                carouselIndex++;
+                    angleIndex++;
+                    nowMs = runtime.milliseconds();
+                }
+                //spinning the carousel
+                if (subState == 2) {
+                    targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+                    updateCarouselPID(targetAngle, nowMs);
+                    if (Math.abs(vertTranAngle - targetAngle) < 5) {
+                        subState = 3;
+                    }
+                    nowMs = runtime.milliseconds();
+                    carouselIndex++;
+                }
+                //loop updates
+                if (subState == 3) {
+                    iter++;
+                    subState = 0;
+                    if (iter == 3) {
+                        pathState = 1;
+                        //resetting values
+                        angleIndex = 0;
+                        carouselIndex = 0;
+                        iter = 0;
+                    }
+                    nowMs = runtime.milliseconds();
+                }
+            }
+            //case 1: shooting the balls
+            if (pathState == 1) {
+                //moving to the shooting spot
+                if (subState == 0) {
+                    if (opModeIsActive() && nowMs < 1000) {
+                        moveRobot(0.5, 0.5, 0.5);
+                    }
 
-                //spin the carousel
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <=0.0) dtSec = 1.0/50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                One.updateCarouselPID(targetAngle, dtSec);
+                    if (opModeIsActive() && nowMs < 1500) {
+                        moveRobot(0, 0, 0);
+                        subState = 1;
+                    }
+                    nowMs = runtime.milliseconds();
+                }
 
-                //shoot the ball
-                intake.setPower(1);
-                vertTrans.setPosition(transMin);
-                sleep(500);
-                intake.setPower(0);
-                vertTrans.setPosition(transMax);
+                //shooting the ball
+                if (subState == 1) {
+                    if (nowMs < 1000) {
+                        vertTrans.setPosition(transMax);
+                        transfer1.setPower(1);
+                    }
+
+                    if (nowMs < 1500) {
+                        vertTrans.setPosition(transMin);
+                        transfer1.setPower(0);
+                        hood.setPosition(HOOD_POSITIONS[angleIndex]);
+                        subState = 2;
+                    }
+
+                    angleIndex++;
+                    nowMs = runtime.milliseconds();
+                }
+
+                //spinning the carousel
+                if (subState == 2) {
+                    targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+                    updateCarouselPID(targetAngle, nowMs);
+                    if (Math.abs(vertTranAngle - targetAngle) < 5) {
+                        subState = 3;
+                    }
+                    nowMs = runtime.milliseconds();
+                    carouselIndex++;
+                }
+
+                //loop updates
+                if (subState == 3) {
+                    iter++;
+                    subState = 1;
+                    if (iter == 3) {
+                        pathState = 2; //ending loop for now
+                    }
+                    nowMs = runtime.milliseconds();
+                }
             }
         }
     }
@@ -396,5 +397,31 @@ public class ThreeBallAuto extends LinearOpMode {
         if (error > 180) error -= 360;
         if (error < -180) error += 360;
         return error;
+    }
+
+    public void moveRobot(double x, double y, double yaw) {
+        // Calculate wheel powers.
+        double frontLeftPower    =  x - y - yaw;
+        double frontRightPower   =  x + y + yaw;
+        double backLeftPower     =  x + y - yaw;
+        double backRightPower    =  x - y + yaw;
+
+        // Normalize wheel powers to be less than 1.0
+        double max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+        max = Math.max(max, Math.abs(backLeftPower));
+        max = Math.max(max, Math.abs(backRightPower));
+
+        if (max > 1.0) {
+            frontLeftPower /= max;
+            frontRightPower /= max;
+            backLeftPower /= max;
+            backRightPower /= max;
+        }
+
+        // Send powers to the wheels.
+        frontLeft.setPower(frontLeftPower);
+        frontRight.setPower(frontRightPower);
+        backLeft.setPower(backLeftPower);
+        backRight.setPower(backRightPower);
     }
 }
