@@ -26,9 +26,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-@Autonomous(name="ThreeBallAuto", group="Linear OpMode")
-public class ThreeBallAuto extends LinearOpMode {
+@Autonomous(name = "FinalAutoHopefully")
+public class FinalAutoHopefully extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -45,8 +44,6 @@ public class ThreeBallAuto extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
-    private DcMotor transfer1 = null;
-
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -54,7 +51,7 @@ public class ThreeBallAuto extends LinearOpMode {
 
     private CRServo turret1;
     private CRServo turret2;
-    private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
+    private final double[] HOOD_POSITIONS = {0.5, 0.65, 0.8, 1};//may have to change
     //SENSOR
     private AnalogInput spinEncoder;
     private AnalogInput turretEncoder;
@@ -91,7 +88,7 @@ public class ThreeBallAuto extends LinearOpMode {
 
     // Carousel Positions (6 presets, every 60 degrees)
     // 57, 177, and 297 face the intake; others face the transfer
-    private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 177.0, 237.0, 297.0, 357.0};
+    private final double[] CAROUSEL_POSITIONS = {57.0, 177.0, 297.0};
     private int carouselIndex = 0;
     private int prevCarxouselIndex = 0;
 
@@ -112,62 +109,60 @@ public class ThreeBallAuto extends LinearOpMode {
     private static final long PREDICTION_TIMEOUT = 500;
     private double lastHeadingError = 0;
 
-
+    OnePersonOpMode One = new OnePersonOpMode();
 
     private ElapsedTime runtime = new ElapsedTime();
 
     @Override
     public void runOpMode() {
+
+        int pathState = 0;
+        int subState = 0;
+
         boolean targetFound = false;
         boolean localizeApril = true;
-        double aprilLocalizationTimeout=0;
-        desiredTag  = null;
-        initAprilTag();
+        double aprilLocalizationTimeout = 0;
+        desiredTag = null;
+
         //region OPERATIONAL VARIABLES
-        // Mechanism States
         boolean tranOn = false;
         boolean intakeOn = false;
         double intakePower = 0;
         boolean flyOn = false;
         boolean transferOn = false;
 
-        //Tuning Variables
-
         double lastPAdjustTime = 0;
         double lastIAdjustTime = 0;
         double lastDAdjustTime = 0;
         double lastFAdjustTime = 0;
 
-        double hoodAngle =0;
+        double hoodAngle = 0;
 
-        // Drive Variables
         double drive = 0;
         double strafe = 0;
         double turn = 0;
 
-        // Flywheel Control
         double flySpeed = 1160;
 
         double lastTime = 0;
 
-        //Transfer
         double vertTranAngle = 0;
-        double transMin = 0.05;//when transfers up
-        double transMid = 0.25;//when its under intake
-        double transMax = 0.9;//shoot
+        double transMin = 0.05;
+        double transMid = 0.25;
+        double transMax = 0.9;
+
+        double targetAngle = 0;
 
         //endregion
 
         //region HARDWARE INITIALIZATION
-        // Initialize Drive Motors
-        frontLeft  = hardwareMap.get(DcMotor.class, "fl");
+        frontLeft = hardwareMap.get(DcMotor.class, "fl");
         frontRight = hardwareMap.get(DcMotor.class, "fr");
-        backLeft   = hardwareMap.get(DcMotor.class, "bl");
-        backRight  = hardwareMap.get(DcMotor.class, "br");
-        fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
-        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
-        fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
-        intake     = hardwareMap.get(DcMotor.class, "in");
+        backLeft = hardwareMap.get(DcMotor.class, "bl");
+        backRight = hardwareMap.get(DcMotor.class, "br");
+        fly1 = hardwareMap.get(DcMotorEx.class, "fly1");
+        fly2 = hardwareMap.get(DcMotorEx.class, "fly2");
+        intake = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         vertTrans = hardwareMap.get(Servo.class, "vtrans");
@@ -175,7 +170,7 @@ public class ThreeBallAuto extends LinearOpMode {
         turret1 = hardwareMap.get(CRServo.class, "turret1");
         turret2 = hardwareMap.get(CRServo.class, "turret2");
         turretEncoder = hardwareMap.get(AnalogInput.class, "turretEncoder");
-        // DIRECTIONS
+
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
@@ -183,7 +178,6 @@ public class ThreeBallAuto extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
-        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -191,29 +185,114 @@ public class ThreeBallAuto extends LinearOpMode {
 
         turret1.setDirection(CRServo.Direction.REVERSE);
         turret2.setDirection(CRServo.Direction.REVERSE);
-        //MODES
+
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        AnalogInput spinAnalog = hardwareMap.get(AnalogInput.class, "espin");
-
         //endregion
 
-        //INIT TELEMETRY
         telemetry.addData("Camera preview on/off", "3 dots, Camera Stream");
         telemetry.addData(">", "Touch START to start OpMode");
         telemetry.update();
+
         waitForStart();
         runtime.reset();
-        double timeChange = runtime.milliseconds();
-        while (opModeIsActive()) {
-            frontLeft.setPower(1);
-            frontRight.setPower(1);
-            backLeft.setPower(1);
-            backRight.setPower(1);
-            if(timeChange > 500){
-                break;
-            }
-        }
-    }
 
+        carouselIndex = 0;
+        vertTranAngle = transMin;
+        flyOn = true;
+        intakeOn = true;
+
+        if (flyOn) {
+            fly1.setVelocity(flySpeed);
+            fly2.setVelocity(flySpeed);
+        }
+        if (intakeOn) {
+            intake.setPower(1);
+        }
+
+        //region WHILE OPMODE ACTIVE
+        while (opModeIsActive()) {
+
+
+            //  Start flywheel and intake
+            flyOn = true;
+            intakeOn = true;
+            fly1.setVelocity(flySpeed);
+            fly2.setVelocity(flySpeed);
+            intake.setPower(1);
+
+            // Shoot 1
+            vertTrans.setPosition(transMin); // transfer down
+            sleep(1000);
+            vertTrans.setPosition(transMid); // transfer up to feed ring
+            sleep(1000);
+
+            // Spin once
+            targetAngle += 90; // rotate spin 90 degrees
+            while (opModeIsActive() && Math.abs(getSpinPosition() - targetAngle) > positionToleranceDeg) {
+                double currentAngle = getSpinPosition();
+                double error = targetAngle - currentAngle;
+                double dt = (runtime.milliseconds() - pidLastTimeMs) / 1000.0;
+                integral += error * dt;
+                integral = Range.clip(integral, -integralLimit, integralLimit);
+                double derivative = (error - lastError) / dt;
+                double output = pidKp * error + pidKi * integral + pidKd * derivative + pidKf;
+                output = Range.clip(output, -1, 1);
+                spin.setPower(output);
+                lastError = error;
+                pidLastTimeMs = runtime.milliseconds();
+                sleep(2000);
+            }
+
+            //  Shoot2
+            vertTrans.setPosition(transMin); // retract transfer
+            sleep(1000);
+            vertTrans.setPosition(transMid); // feed again
+            sleep(1000);
+
+            //  Spin twice
+            targetAngle += 90;
+            while (opModeIsActive() && Math.abs(getSpinPosition() - targetAngle) > positionToleranceDeg) {
+                double currentAngle = getSpinPosition();
+                double error = targetAngle - currentAngle;
+                double dt = (runtime.milliseconds() - pidLastTimeMs) / 1000.0;
+                integral += error * dt;
+                integral = Range.clip(integral, -integralLimit, integralLimit);
+                double derivative = (error - lastError) / dt;
+                double output = pidKp * error + pidKi * integral + pidKd * derivative + pidKf;
+                output = Range.clip(output, -1, 1);
+                spin.setPower(output);
+                lastError = error;
+                pidLastTimeMs = runtime.milliseconds();
+                sleep(2000);
+            }
+
+            //  Shoot 3
+            vertTrans.setPosition(transMin);
+            sleep(1000);
+            vertTrans.setPosition(transMax);
+            sleep(1000);
+
+            // Finish
+            fly1.setVelocity(0);
+            fly2.setVelocity(0);
+            intake.setPower(0);
+            spin.setPower(0);
+
+            break; // exit while loop after completing the shooting sequence
+
+            }
+
+            telemetry.addData("Carousel Index", carouselIndex);
+            telemetry.addData("Spin Position", getSpinPosition());
+            telemetry.update();
+        }
+        //endregion
+
+
+    // Helper function to get spin encoder position in degrees
+    private double getSpinPosition() {
+        return spinEncoder.getVoltage() * (360.0 / 3.3); // adjust based on your calibration
+    }
 }
+
