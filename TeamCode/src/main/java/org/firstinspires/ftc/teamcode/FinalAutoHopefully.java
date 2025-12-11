@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import android.util.Size;
 
+import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 @Autonomous(name = "FinalAutoHopefully")
 public class FinalAutoHopefully extends LinearOpMode {
+    private static final Pose2d STARTING_POSE = new Pose2d(12, -60, Math.toRadians(90));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -138,9 +140,8 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         double hoodAngle = 0;
 
-        double drive = 0;
-        double strafe = 0;
-        double turn = 0;
+        MecanumDrive drive = new MecanumDrive(hardwareMap, STARTING_POSE);
+
 
         double flySpeed = 1160;
 
@@ -194,6 +195,16 @@ public class FinalAutoHopefully extends LinearOpMode {
         telemetry.addData(">", "Touch START to start OpMode");
         telemetry.update();
 
+        TrajectoryActionBuilder shortWait = drive.actionBuilder(STARTING_POSE)
+                .waitSeconds(1000);
+
+        TrajectoryActionBuilder longWait = drive.actionBuilder(STARTING_POSE)
+                .waitSeconds(7000);
+
+        TrajectoryActionBuilder midWait = drive.actionBuilder(STARTING_POSE)
+                .waitSeconds(2000);
+
+
         waitForStart();
         runtime.reset();
 
@@ -213,19 +224,19 @@ public class FinalAutoHopefully extends LinearOpMode {
         //region WHILE OPMODE ACTIVE
         while (opModeIsActive()) {
 
-
             //  Start flywheel and intake
             flyOn = true;
             intakeOn = true;
             fly1.setVelocity(flySpeed);
             fly2.setVelocity(flySpeed);
             intake.setPower(1);
+            longWait.build();
 
             // Shoot 1
             vertTrans.setPosition(transMin); // transfer down
-            sleep(1000);
+            shortWait.build();
             vertTrans.setPosition(transMid); // transfer up to feed ring
-            sleep(1000);
+            shortWait.build();
 
             // Spin once
             targetAngle += 90; // rotate spin 90 degrees
@@ -241,14 +252,14 @@ public class FinalAutoHopefully extends LinearOpMode {
                 spin.setPower(output);
                 lastError = error;
                 pidLastTimeMs = runtime.milliseconds();
-                sleep(2000);
+                midWait.build();
             }
 
             //  Shoot2
             vertTrans.setPosition(transMin); // retract transfer
-            sleep(1000);
+            shortWait.build();
             vertTrans.setPosition(transMid); // feed again
-            sleep(1000);
+            shortWait.build();
 
             //  Spin twice
             targetAngle += 90;
@@ -264,14 +275,14 @@ public class FinalAutoHopefully extends LinearOpMode {
                 spin.setPower(output);
                 lastError = error;
                 pidLastTimeMs = runtime.milliseconds();
-                sleep(2000);
+                midWait.build();
             }
 
             //  Shoot 3
             vertTrans.setPosition(transMin);
-            sleep(1000);
+            shortWait.build();
             vertTrans.setPosition(transMax);
-            sleep(1000);
+            shortWait.build();
 
             // Finish
             fly1.setVelocity(0);
