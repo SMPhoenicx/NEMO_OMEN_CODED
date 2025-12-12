@@ -263,13 +263,13 @@ public class OnePersonOpMode extends LinearOpMode {
             //endregion
 
             //region INTAKE CONTROL
-            if (gamepad1.rightBumperWasPressed()) {
+            if (gamepad2.rightBumperWasPressed()) {
                 intakePower = 1;
                 intakeOn = !intakeOn;
             }
 
             // Outtake
-            if (gamepad1.leftBumperWasPressed()) {
+            if (gamepad2.leftBumperWasPressed()) {
                 intakePower = -0.6;
             }
 
@@ -366,16 +366,12 @@ public class OnePersonOpMode extends LinearOpMode {
             }
 
             if (gamepad2.dpadLeftWasPressed()) {
-                if(vertTranAngle == transMin) {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
                     carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
-                }
             }
             if (gamepad2.dpadRightWasPressed()) {
-                if(vertTranAngle == transMin) {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
                     carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
-                }
             }
 
             //endregion

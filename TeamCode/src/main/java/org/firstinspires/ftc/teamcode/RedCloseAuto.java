@@ -227,10 +227,10 @@ public class RedCloseAuto extends LinearOpMode {
                 //wait ant put speciamskdfjas;dlfkja onto the cage
                 .waitSeconds(43.5)
                 .strafeTo(new Vector2d(0,-30));
-//                .stopAndAdd(pivot.pivotDown(800))
-//                .stopAndAdd(lift.liftDown(1000))
-//                .stopAndAdd(intake.intakeDown());
-        //.stopAndAdd(pushSamples.build());
+/*                .stopAndAdd(pivot.pivotDown(800))
+                .stopAndAdd(lift.liftDown(1000))
+                .stopAndAdd(intake.intakeDown());
+        .stopAndAdd(pushSamples.build());*/
 
 
 

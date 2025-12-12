@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
+import static androidx.core.math.MathUtils.clamp;
+
 import android.util.Size;
 
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -76,10 +79,10 @@ public class FinalAutoHopefully extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
 
-    private double spindexerAngleDeg = 0.0;
-    private double spindexerErrorDeg = 0.0;
-    private double spindexerOutput = 0.0;
-    private boolean spindexerAtTarget = false;
+    private double carouselAngleDeg = 0.0;
+    private double carouselErrorDeg = 0.0;
+    private double carouselOutput = 0.0;
+    private boolean carouselAtTarget = false;
 
     private double tuKp = 0;
     private double tuKi = 0;
@@ -100,7 +103,7 @@ public class FinalAutoHopefully extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private final double[] CAROUSEL_POSITIONS = {57.0, 177.0, 297.0};
     private int carouselIndex = 0;
-    private int prevCarxouselIndex = 0;
+    private int prevCarouselIndex = 0;
 
     private double turretTrackingOffset = 0;
     private double lastTurretEncoder = 0;
@@ -144,6 +147,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         double intakePower = 0;
         boolean flyOn = false;
         boolean transferOn = false;
+        boolean carouselready = false;
 
         double lastPAdjustTime = 0;
         double lastIAdjustTime = 0;
@@ -206,15 +210,15 @@ public class FinalAutoHopefully extends LinearOpMode {
         telemetry.update();
 
         TrajectoryActionBuilder shortWait = drive.actionBuilder(STARTING_POSE)
-                .waitSeconds(1000);
+                .waitSeconds(1);
 
         TrajectoryActionBuilder longWait = drive.actionBuilder(STARTING_POSE)
-                .waitSeconds(7000);
+                .waitSeconds(7);
 
 
         Action setTransMin = telemetryPacket -> {
             vertTrans.setPosition(transMin);
-            return false;  // false = action finishes immediately
+            return false;
         };
 
         Action setTransMid = telemetryPacket -> {
@@ -234,7 +238,7 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .stopAndAdd(setTransMid);
 
         // Carrousel action builder
-        TrajectoryActionBuilder Carrousel = drive.actionBuilder(STARTING_POSE)
+        TrajectoryActionBuilder carousel = drive.actionBuilder(STARTING_POSE)
                 .stopAndAdd(spin90);
 
 
@@ -261,17 +265,12 @@ public class FinalAutoHopefully extends LinearOpMode {
         if (opModeIsActive()) {
             // Build and run actions once
             Actions.runBlocking(
-                    new ParallelAction(
+                    new SequentialAction(
                             longWait.build(),
                             shoot.build(),
+                            carousel.build(),
                             shortWait.build(),
-                            Carrousel.build(),
-                            shortWait.build(),
-                            shoot.build(),
-                            shortWait.build(),
-                            Carrousel.build(),
-                            shortWait.build(),
-                            shoot.build()
+                            carousel.build()
                     )
             );
         }
@@ -313,34 +312,71 @@ public class FinalAutoHopefully extends LinearOpMode {
         return v * (360.0 / 3.3); // adjust based on your calibration
     }
 
-    private void updateCarouselPID(double targetAngle, double dt) {
-        if (dt <= 0) return;
+    void updateCarouselPID(double targetAngle, double dt) {
+        double ccwOffset = -6.0;
+        // read angles 0..360
+        double angle = mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29);
 
-        double currentAngle = getSpinPosition();
-        // basic error (no angle wrapping implemented, but that can be added if you want shortest path)
-        double error = targetAngle - currentAngle;
+        //raw error
+        double rawError = -angleError(targetAngle, angle);
 
-        // Integrator
+        //adds a constant term if it's in a certain direction.
+        // we either do this or we change the pid values for each direction.
+        // gonna try and see if simpler method works tho
+        double compensatedTarget = targetAngle;
+        if (rawError < 0) { // moving CCW
+            compensatedTarget = (targetAngle + ccwOffset) % 360.0;
+        }
+        // compute shortest signed error [-180,180]
+        double error = -angleError(compensatedTarget, angle);
+
+        // integral with anti-windup
         integral += error * dt;
-        integral = Range.clip(integral, -integralLimit, integralLimit);
+        integral = clamp(integral, -integralLimit, integralLimit);
 
-        // Derivative
-        double derivative = 0.0;
-        if (pidLastTimeMs > 0) {
-            derivative = (error - lastError) / dt;
+        // derivative
+        double d = (error - lastError) / Math.max(dt, 1e-6);
+
+        // PIDF output (interpreted as servo power)
+        double out = pidKp * error + pidKi * integral + pidKd * d;
+
+        // small directional feedforward to overcome stiction when error significant
+        if (Math.abs(error) > 1.0) out += pidKf * Math.signum(error);
+
+        // clamp to [-1,1] and apply deadband
+        out = Range.clip(out, -1.0, 1.0);
+        if (Math.abs(out) < outputDeadband) out = 0.0;
+
+        // if within tolerance, zero outputs and decay integrator to avoid bumping
+        if (Math.abs(error) <= positionToleranceDeg) {
+            out = 0.0;
+            integral *= 0.2;
         }
 
-        double output = pidKp * error + pidKi * integral + pidKd * derivative + pidKf;
-        // scale output to servo power domain; chosen divisor prevents overly large servo commands
-        // keep it conservative — if needed tune pidKp/Ki/Kd instead of changing this scaling
-        double scaled = output / 180.0; // approximate scale (180 deg -> full power)
-        scaled = Range.clip(scaled, -1.0, 1.0);
+        // apply powers (flip one if your servo is mirrored - change sign if needed)
+        spin.setPower(out);
 
-        if (Math.abs(scaled) < outputDeadband) scaled = 0.0;
-
-        if (spin != null) spin.setPower(scaled);
-
+        // store errors for next derivative calculation
         lastError = error;
-        pidLastTimeMs = runtime.milliseconds();
+
+        // telemetry for PID (keeps concise, add more if you want)
+        telemetry.addData("Carousel Target", "%.1f°", targetAngle);
+
+
     }
+
+    private double angleError(double target, double current) {
+        double error = target - current;
+        if (error > 180) error -= 360;
+        if (error < -180) error += 360;
+        return error;
+    }
+
+    private double mapVoltageToAngle360(double v, double vMin, double vMax) {
+        double angle = 360.0 * (v - vMin) / (vMax - vMin);
+        angle = (angle + 360) % 360;
+        telemetry.addData("Encoder: ", angle);
+        return angle;
+    }
+
 }
