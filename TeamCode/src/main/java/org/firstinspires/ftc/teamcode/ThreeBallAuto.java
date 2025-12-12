@@ -27,7 +27,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="ThreeBallAuto")
+@Autonomous(name="ThreeBallAuto", group="Linear OpMode")
 public class ThreeBallAuto extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
@@ -45,6 +45,8 @@ public class ThreeBallAuto extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
+    private DcMotor transfer1 = null;
+
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -89,7 +91,7 @@ public class ThreeBallAuto extends LinearOpMode {
 
     // Carousel Positions (6 presets, every 60 degrees)
     // 57, 177, and 297 face the intake; others face the transfer
-    private final double[] CAROUSEL_POSITIONS = {57.0, 177.0, 297.0};
+    private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 177.0, 237.0, 297.0, 357.0};
     private int carouselIndex = 0;
     private int prevCarxouselIndex = 0;
 
@@ -110,7 +112,7 @@ public class ThreeBallAuto extends LinearOpMode {
     private static final long PREDICTION_TIMEOUT = 500;
     private double lastHeadingError = 0;
 
-    OnePersonOpMode One = new OnePersonOpMode();
+
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -120,6 +122,7 @@ public class ThreeBallAuto extends LinearOpMode {
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
         desiredTag  = null;
+        ///initAprilTag();
         //region OPERATIONAL VARIABLES
         // Mechanism States
         boolean tranOn = false;
@@ -154,6 +157,7 @@ public class ThreeBallAuto extends LinearOpMode {
         double transMax = 0.9;//shoot
 
         //endregion
+
         //region HARDWARE INITIALIZATION
         // Initialize Drive Motors
         frontLeft  = hardwareMap.get(DcMotor.class, "fl");
@@ -161,6 +165,7 @@ public class ThreeBallAuto extends LinearOpMode {
         backLeft   = hardwareMap.get(DcMotor.class, "bl");
         backRight  = hardwareMap.get(DcMotor.class, "br");
         fly1       = hardwareMap.get(DcMotorEx.class, "fly1");
+        transfer1       = hardwareMap.get(DcMotorEx.class, "transfer1");
         fly2       = hardwareMap.get(DcMotorEx.class, "fly2");
         intake     = hardwareMap.get(DcMotor.class, "in");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -178,6 +183,7 @@ public class ThreeBallAuto extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.REVERSE);
         fly2.setDirection(DcMotor.Direction.REVERSE);
+        transfer1.setDirection(DcMotorSimple.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -199,15 +205,7 @@ public class ThreeBallAuto extends LinearOpMode {
         waitForStart();
         runtime.reset();
         double timeChange = runtime.milliseconds();
-
-        //initialize carousel values
-        double nowMs;
-        double dtSec;
-        double targetAngle;
-
         while (opModeIsActive()) {
-            //old code preserved here
-            /*
             frontLeft.setPower(1);
             frontRight.setPower(1);
             backLeft.setPower(1);
@@ -215,186 +213,7 @@ public class ThreeBallAuto extends LinearOpMode {
             if(timeChange > 500){
                 break;
             }
-            */
-            //initial variables
-            int pathState = 0;
-            int angleIndex = 2;
-            //flyOn remains on entire time
-            flyOn = true;
-            fly1.setVelocity(flySpeed);
-            fly2.setVelocity(flySpeed);
-            hood.setPosition(HOOD_POSITIONS[angleIndex]);
-
-            //CASE 0: collecting the three balls
-            //have substates to check when the code reaches the target position
-            //have substates for every time the code loops
-            //only two main states (I think)
-            /*if (pathState == 0) {
-                intake.setPower(1); //start intake (value automatically 1)
-
-                //move to first ball (use roadrunner)
-
-                // loading the first ball
-                vertTrans.setPosition(trans);
-                transfer1.setPower(1);
-                sleep(1000);
-                transfer1.setPower(0);
-                hood.setPosition(HOOD_POSITIONS[angleIndex]);
-                angleIndex++;
-
-                //spin the carousel (1)
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <= 0.0) dtSec = 1.0 / 50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                updateCarouselPID(targetAngle, dtSec); //import this
-
-                //move to next ball (use roadrunner)
-
-                //loading the second ball
-                vertTrans.setPosition(transMid);
-                transfer1.setPower(1);
-                sleep(1000);
-                transfer1.setPower(0);
-                hood.setPosition(HOOD_POSITIONS[angleIndex]);
-                angleIndex++;
-
-                //spin the carousel (2)
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <=0.0) dtSec = 1.0/50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                updateCarouselPID(targetAngle, dtSec);
-
-                //move to final ball (use roadrunner)
-
-                //loading the third ball
-                vertTrans.setPosition(transMid);
-                transfer1.setPower(1);
-                sleep(1000);
-                transfer1.setPower(0);
-                hood.setPosition(HOOD_POSITIONS[angleIndex]);
-
-                intake.setPower(0); //value automatically 0
-                pathState++;
-            }*/
-
-            //CASE 1: launching the balls
-            if (pathState == 0) {
-                //move to the shooting position using roadrunner
-                sleep(1000);
-
-                //shoot the ball
-                intake.setPower(1);
-                vertTrans.setPosition(transMin);
-                sleep(500);
-                intake.setPower(0);
-                vertTrans.setPosition(transMax);
-                carouselIndex++;
-
-                //spin the carousel
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <=0.0) dtSec = 1.0/50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                One.updateCarouselPID(targetAngle, dtSec);
-
-                //shoot the ball
-                intake.setPower(1);
-                vertTrans.setPosition(transMin);
-                sleep(500);
-                intake.setPower(0);
-                vertTrans.setPosition(transMax);
-                carouselIndex++;
-
-                //spin the carousel
-                nowMs = runtime.milliseconds();
-                dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-                if (dtSec <=0.0) dtSec = 1.0/50.0;
-                pidLastTimeMs = nowMs;
-                targetAngle = CAROUSEL_POSITIONS[carouselIndex];
-                One.updateCarouselPID(targetAngle, dtSec);
-
-                //shoot the ball
-                intake.setPower(1);
-                vertTrans.setPosition(transMin);
-                sleep(500);
-                intake.setPower(0);
-                vertTrans.setPosition(transMax);
-            }
         }
     }
-    void updateCarouselPID(double targetAngle, double dt) {
-        double ccwOffset = -6.0;
-        // read angles 0..360
-        double angle = mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29);
 
-        //raw error
-        double rawError = -angleError(targetAngle, angle);
-
-        //adds a constant term if it's in a certain direction.
-        // we either do this or we change the pid values for each direction.
-        // gonna try and see if simpler method works tho
-        double compensatedTarget = targetAngle;
-        if (rawError < 0) { // moving CCW
-            compensatedTarget = (targetAngle + ccwOffset) % 360.0;
-        }
-        // compute shortest signed error [-180,180]
-        double error = -angleError(compensatedTarget, angle);
-
-        // integral with anti-windup
-        integral += error * dt;
-        integral = clamp(integral, -integralLimit, integralLimit);
-
-        // derivative
-        double d = (error - lastError) / Math.max(dt, 1e-6);
-
-        // PIDF output (interpreted as servo power)
-        double out = pidKp * error + pidKi * integral + pidKd * d;
-
-        // small directional feedforward to overcome stiction when error significant
-        if (Math.abs(error) > 1.0) out += pidKf * Math.signum(error);
-
-        // clamp to [-1,1] and apply deadband
-        out = Range.clip(out, -1.0, 1.0);
-        if (Math.abs(out) < outputDeadband) out = 0.0;
-
-        // if within tolerance, zero outputs and decay integrator to avoid bumping
-        if (Math.abs(error) <= positionToleranceDeg) {
-            out = 0.0;
-            integral *= 0.2;
-        }
-
-        // apply powers (flip one if your servo is mirrored - change sign if needed)
-        spin.setPower(out);
-
-        // store errors for next derivative calculation
-        lastError = error;
-
-        // telemetry for PID (keeps concise, add more if you want)
-        telemetry.addData("Carousel Target", "%.1f°", targetAngle);
-
-
-    }
-    private double clamp(double v, double lo, double hi) {
-        return Math.max(lo, Math.min(hi, v));
-    }
-
-    private double mapVoltageToAngle360(double v, double vMin, double vMax) {
-        double angle = 360.0 * (v - vMin) / (vMax - vMin);
-        angle = (angle + 360) % 360;
-        telemetry.addData("Encoder: ", angle);
-        return angle;
-    }
-
-    // Compute shortest signed difference between two angles
-    private double angleError(double target, double current) {
-        double error = target - current;
-        if (error > 180) error -= 360;
-        if (error < -180) error += 360;
-        return error;
-    }
 }
