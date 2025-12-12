@@ -122,7 +122,7 @@ public class ThreeBallAuto extends LinearOpMode {
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
         desiredTag  = null;
-        initAprilTag();
+        ///initAprilTag();
         //region OPERATIONAL VARIABLES
         // Mechanism States
         boolean tranOn = false;
