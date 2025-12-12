@@ -68,9 +68,9 @@ public class FinalAutoHopefully extends LinearOpMode {
 
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
-    private double pidKp = 0.0160;
+    private double pidKp = 0.0260;
     private double pidKi = 0.0018;
-    private double pidKd = 0.0004;
+    private double pidKd = 0.0002;
     private double pidKf = 0.0;
 
     // Carousel PID State
@@ -213,7 +213,7 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .waitSeconds(1);
 
         TrajectoryActionBuilder longWait = drive.actionBuilder(STARTING_POSE)
-                .waitSeconds(7);
+                .waitSeconds(5);
 
 
         Action setTransMin = telemetryPacket -> {
@@ -227,20 +227,54 @@ public class FinalAutoHopefully extends LinearOpMode {
         };
 
         // spin90
+        Action back = telemetryPacket -> {
+            frontLeft.setPower(0.2);
+            frontRight.setPower(0.2);
+            backLeft.setPower(0.2);
+            backRight.setPower(0.2);
+            return false;
+        };
+
+        Action back2 = telemetryPacket -> {
+            frontLeft.setPower(0);
+            frontRight.setPower(0);
+            backLeft.setPower(0);
+            backRight.setPower(0);
+            return false;
+        };
+
+        Action pos1 = telemetryPacket -> {
+            carouselIndex = 1;
+            return false;
+        };
+
         Action spin90 = telemetryPacket -> {
-            carouselIndex++;
+            spin.setPower(1);
+            return false;
+        };
+
+        Action spin0 = telemetryPacket -> {
+            spin.setPower(0);
             return false;
         };
 
         TrajectoryActionBuilder shoot = drive.actionBuilder(STARTING_POSE)
-                .stopAndAdd(setTransMin)
+                .stopAndAdd(setTransMid)
                 .waitSeconds(1)
-                .stopAndAdd(setTransMid);
+                .stopAndAdd(setTransMin);
 
         // Carrousel action builder
-        TrajectoryActionBuilder carousel = drive.actionBuilder(STARTING_POSE)
-                .stopAndAdd(spin90);
+        TrajectoryActionBuilder backward = drive.actionBuilder(STARTING_POSE)
+                .stopAndAdd(back)
+                .waitSeconds(2)
+                .stopAndAdd(back2);
 
+
+
+        TrajectoryActionBuilder carousel = drive.actionBuilder(STARTING_POSE)
+                .stopAndAdd(spin90)
+                .waitSeconds(3)
+                .stopAndAdd(spin0);
 
 
         waitForStart();
@@ -249,6 +283,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         vertTranAngle = transMin;
         flyOn = true;
         intakeOn = true;
+
 
         if (flyOn) {
             fly1.setVelocity(flySpeed);
@@ -263,21 +298,23 @@ public class FinalAutoHopefully extends LinearOpMode {
         double dtSec = 0.0;
 
         if (opModeIsActive()) {
-            // Build and run actions once
             Actions.runBlocking(
                     new SequentialAction(
+                            backward.build(),
                             longWait.build(),
                             shoot.build(),
-                            carousel.build(),
-                            shortWait.build(),
                             carousel.build()
                     )
             );
+
         }
 
         // After the blocking actions finish, keep the opmode alive for telemetry until stopped
         while (opModeIsActive()) {
 
+            telemetry.addData("Carousel Index", carouselIndex);
+            telemetry.addData("Spin Position", getSpinPosition());
+            telemetry.update();
             double nowMs = runtime.milliseconds();
             dtSec = (nowMs - lastLoopMs) / 1000.0;
             if (dtSec <= 0) dtSec = 0.001; // guard
@@ -288,9 +325,7 @@ public class FinalAutoHopefully extends LinearOpMode {
             updateCarouselPID(targetAngle, dtSec);
             //endregion
 
-            telemetry.addData("Carousel Index", carouselIndex);
-            telemetry.addData("Spin Position", getSpinPosition());
-            telemetry.update();
+
 
         }
         //endregion
@@ -361,6 +396,12 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         // telemetry for PID (keeps concise, add more if you want)
         telemetry.addData("Carousel Target", "%.1f°", targetAngle);
+        telemetry.addData("Voltage", spinEncoder.getVoltage());
+        telemetry.addData("Angle", mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29));
+        telemetry.addData("Target", CAROUSEL_POSITIONS[carouselIndex]);
+        telemetry.addData("Error", angleError(CAROUSEL_POSITIONS[carouselIndex], angle));
+        telemetry.addData("PID Out", out);
+
 
 
     }
