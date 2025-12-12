@@ -222,7 +222,7 @@ public class FinalAutoHopefully extends LinearOpMode {
             return false;
         };
 
-        // fixed spin90 -> increments carouselIndex
+        // spin90
         Action spin90 = telemetryPacket -> {
             carouselIndex++;
             return false;
@@ -233,7 +233,7 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .waitSeconds(1)
                 .stopAndAdd(setTransMid);
 
-        // Carrousel action builder - provide a concrete action to stopAndAdd
+        // Carrousel action builder
         TrajectoryActionBuilder Carrousel = drive.actionBuilder(STARTING_POSE)
                 .stopAndAdd(spin90);
 
@@ -255,8 +255,6 @@ public class FinalAutoHopefully extends LinearOpMode {
         }
 
         //region WHILE OPMODE ACTIVE
-        // We'll run the full autonomous sequence once using Actions.runBlocking and then
-        // exit the loop so we don't repeat the sequence forever.
         double lastLoopMs = runtime.milliseconds();
         double dtSec = 0.0;
 
