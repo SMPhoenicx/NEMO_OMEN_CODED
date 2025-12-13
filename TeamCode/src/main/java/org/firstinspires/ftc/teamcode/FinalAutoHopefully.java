@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import static androidx.core.math.MathUtils.clamp;
 
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.util.Size;
 
 import com.acmerobotics.roadrunner.Action;
@@ -159,7 +160,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         MecanumDrive drive = new MecanumDrive(hardwareMap, STARTING_POSE);
 
 
-        double flySpeed = 1160;
+        double flySpeed = 635;
 
         double lastTime = 0;
 
@@ -213,7 +214,7 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .waitSeconds(1);
 
         TrajectoryActionBuilder longWait = drive.actionBuilder(STARTING_POSE)
-                .waitSeconds(5);
+                .waitSeconds(7);
 
 
         Action setTransMin = telemetryPacket -> {
@@ -228,10 +229,10 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         // spin90
         Action back = telemetryPacket -> {
-            frontLeft.setPower(0.2);
-            frontRight.setPower(0.2);
-            backLeft.setPower(0.2);
-            backRight.setPower(0.2);
+            frontLeft.setPower(-1);
+            frontRight.setPower(-1);
+            backLeft.setPower(-1);
+            backRight.setPower(-1);
             return false;
         };
 
@@ -249,7 +250,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         };
 
         Action spin90 = telemetryPacket -> {
-            spin.setPower(1);
+            spin.setPower(0.25);
             return false;
         };
 
@@ -266,7 +267,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         // Carrousel action builder
         TrajectoryActionBuilder backward = drive.actionBuilder(STARTING_POSE)
                 .stopAndAdd(back)
-                .waitSeconds(2)
+                .waitSeconds(1)
                 .stopAndAdd(back2);
 
 

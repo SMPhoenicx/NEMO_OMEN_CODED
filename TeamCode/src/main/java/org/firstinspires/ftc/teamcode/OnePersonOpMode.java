@@ -73,7 +73,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
 
-    private double tuKp = 0;
+    private double tuKp = 0.1;
     private double tuKi = 0;
     private double tuKd = 0.0;
     private double tuKf = 0.0;
@@ -100,7 +100,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private static final double TURRET_DERIVATIVE_GAIN = 0.9;
 
     //VISION STUFF
-    private static final int DESIRED_TAG_ID = 20;
+    private static final int DESIRED_TAG_ID = 24;
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;
     private AprilTagDetection desiredTag;
@@ -117,7 +117,6 @@ public class OnePersonOpMode extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        double targetAngleTurret = 0;
         boolean targetFound = false;
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
@@ -321,7 +320,7 @@ public class OnePersonOpMode extends LinearOpMode {
 
             // ENCODING FOR SERVOS
             double volt = spinAnalog.getVoltage();
-
+/*
             // === PIDF tuning via Gamepad2 ===
             double adjustStepP = 0.0002;
             double adjustStepI = 0.0002;
@@ -329,57 +328,52 @@ public class OnePersonOpMode extends LinearOpMode {
             double debounceTime = 175; // milliseconds
 
             if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
-                if (gamepad2.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_right) { pidKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_left) { pidKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
             if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
-                if (gamepad2.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_up) { pidKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { pidKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
             }
             if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
-                if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
-                if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_up) { pidKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { pidKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
             }
 
 
             // Safety clamp
-            tuKp = Math.max(0, pidKp);
-            tuKi = Math.max(0, pidKi);
-            tuKd = Math.max(0, pidKd);
+            pidKp = Math.max(0, pidKp);
+            pidKi = Math.max(0, pidKi);
+            pidKd = Math.max(0, pidKd);
 
             // Display PID constants on telemetry
             telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
-            telemetry.addData("kP", "%.4f", tuKp);
-            telemetry.addData("kI", "%.4f", tuKi);
-            telemetry.addData("kD", "%.4f", tuKd);
+            telemetry.addData("kP", "%.4f", pidKp);
+            telemetry.addData("kI", "%.4f", pidKi);
+            telemetry.addData("kD", "%.4f", pidKd);
             //endregion
+*/
             // always run PID towards the current selected preset while opMode active
             double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
             updateCarouselPID(targetAngle, dtSec);
-
             //endregion
 
-            if (gamepad2.rightBumperWasPressed()) {
-                targetAngleTurret = 0.5;
+            if (gamepad2.squareWasPressed()) {
+                targetAngle = 90;
             }
-            if(gamepad2.leftBumperWasPressed()){
-                targetAngleTurret = 0;
+            else{
+                targetAngle = 0;
             }
-
-            updateTurretPID(targetAngleTurret, dtSec);
-            telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)",  targetAngleTurret);
-
-            /*
 
             if (gamepad2.dpadLeftWasPressed()) {
-                    carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
-                    carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
+                carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
+                carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
             }
             if (gamepad2.dpadRightWasPressed()) {
-                    carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
-                    carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
+                carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
+                carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
             }
-            */
+
             //endregion
 
             //region FLYWHEEL
@@ -420,6 +414,7 @@ public class OnePersonOpMode extends LinearOpMode {
             }
 //df
             if (facingGoal) {
+                turn  = -gamepad1.right_stick_x;
                 if (targetFound) {
                     lastKnownBearing = desiredTag.ftcPose.bearing;
                     lastKnownRange = desiredTag.ftcPose.range;
@@ -432,21 +427,21 @@ public class OnePersonOpMode extends LinearOpMode {
                     pidTimer.reset();
 
 //                    if (Math.abs(headingError) < 2.0) {
-//                        turn = 0;
-//                    } else {
+  //                      turn = 0;
+ //                   } else {
 //                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
 //                    }
 
                     lastHeadingError = headingError;
 
-                    double turretAngle = lastKnownBearing/360;
+                    double turretAngle = lastKnownBearing;
                     if(turretAngle <-0.0055){
                         turretAngle = 0.5 - turretAngle;
                     }else if(turretAngle > 0.0055){
                         turretAngle = 0.5 + turretAngle;
                     }
-
-                    //updateTurretPID(turretAngle, dtSec);
+                    turn  = -gamepad1.right_stick_x;
+                    updateTurretPID(turretAngle, dtSec);
                     telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
                 }
                 else {
@@ -461,22 +456,53 @@ public class OnePersonOpMode extends LinearOpMode {
                         double derivative = (headingError - lastHeadingError) / deltaTime;
                         pidTimer.reset();
 
-                        if (Math.abs(headingError) < 2.0) {
-                            turn = 0;
-                        } else {
-                            turn = (TURN_P * headingError) + (TURN_D * derivative);
-                            turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-                        }
+//                        if (Math.abs(headingError) < 2.0) {
+  //                          turn = 0;
+    //                    } else {
+      //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
+        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+          //              }
 
                         lastHeadingError = headingError;
 
                         telemetry.addData("Tracking", "PREDICTED (lost %dms ago)", timeSinceLost);
                     } else {
-                        turn = 0;
+                        turn  = -gamepad1.right_stick_x;
                         lastHeadingError = 0;
                         pidTimer.reset();
                         telemetry.addData("Tracking", "LOST");
                     }
+                    double adjustStepP = 0.0002;
+                    double adjustStepI = 0.0002;
+                    double adjustStepD = 0.00001;
+                    double debounceTime = 175; // milliseconds
+
+                    if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                        if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                    }
+                    if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+                        if (gamepad1.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                    }
+                    if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                        if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                        if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                    }
+
+
+
+
+                    // Safety clamp
+                    tuKp = Math.max(0, tuKp);
+                    tuKi = Math.max(0, tuKi);
+                    tuKd = Math.max(0, tuKd);
+
+                    // Display PID constants on telemetry
+                    telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
+                    telemetry.addData("kP", "%.4f", tuKp);
+                    telemetry.addData("kI", "%.4f", tuKi);
+                    telemetry.addData("kD", "%.4f", tuKd);
                 }
             }
             else{
@@ -523,22 +549,9 @@ public class OnePersonOpMode extends LinearOpMode {
         backLeft.setPower(backLeftPower);
         backRight.setPower(backRightPower);
     }
-
-    private double normalizeDeg180(double deg) {
-        deg = (deg + 180) % 360;
-        if (deg < 0) deg += 360;
-        return deg - 180;
-    }
-
-    private double normalizeRadPi(double rad) {
-        rad = (rad + Math.PI) % (2 * Math.PI);
-        if (rad < 0) rad += 2 * Math.PI;
-        return rad - Math.PI;
-    }
-
     private void updateTurretPID(double targetAngle, double dt) {
         // read angles 0..360
-        double angle = normalizeDeg180(mapVoltageToAngle360(turretEncoder.getVoltage(),0.01, 3.29));
+        double angle = 180-mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
 
         //raw error
         double rawError = -angleError(targetAngle, angle);
@@ -554,15 +567,14 @@ public class OnePersonOpMode extends LinearOpMode {
         double error = -angleError(compensatedTarget, angle);
 
         // integral with anti-windup
-        tuIntegral += error * dt;
-        tuIntegral = clamp(tuIntegral, -tuIntegralLimit, tuIntegralLimit);
+        integral += error * dt;
+        integral = clamp(integral, -integralLimit, integralLimit);
 
         // derivative
         double d = (error - lastError) / Math.max(dt, 1e-6);
 
         // PIDF output (interpreted as servo power)
         double out = tuKp * error +tuKi * integral + tuKd * d;
-
         // small directional feedforward to overcome stiction when error significant
         if (Math.abs(error) > 1.0) out += tuKf * Math.signum(error);
 
@@ -575,11 +587,13 @@ public class OnePersonOpMode extends LinearOpMode {
             out = 0.0;
             integral *= 0.2;
         }
+        telemetry.addData("Turret Target", "%.1f", out);
         turret1.setPower(out);
         turret2.setPower(out);
 
         tuLastError = error;
-        telemetry.addData("Turret Target", "%.1f", targetAngle);
+
+
 
     }
 
@@ -587,7 +601,6 @@ public class OnePersonOpMode extends LinearOpMode {
         double ccwOffset = -6.0;
         // read angles 0..360
         double angle = mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29);
-
         //raw error
         double rawError = -angleError(targetAngle, angle);
 
