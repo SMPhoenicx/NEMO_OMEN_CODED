@@ -27,7 +27,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@TeleOp(name="OnePersonOpMode", group="Linear OpMode")
+@TeleOp(name="NothingBreakPls", group="Linear OpMode")
 public class OnePersonOpMode extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
@@ -97,7 +97,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private double turretTrackingOffset = 0;
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
-    private static final double TURRET_DERIVATIVE_GAIN = 0.9;
+    private static final double TURRET_DERIVATIVE_GAIN = 0.8;
 
     //VISION STUFF
     private static final int DESIRED_TAG_ID = 24;
@@ -145,7 +145,7 @@ public class OnePersonOpMode extends LinearOpMode {
         double turn = 0;
 
         // Flywheel Control
-        double flySpeed = 1160;
+        double flySpeed = 760;
         
         double lastTime = 0;
 
@@ -153,7 +153,7 @@ public class OnePersonOpMode extends LinearOpMode {
         double vertTranAngle = 0;
         double transMin = 0.05;//when transfers up
         double transMid = 0.25;//when its under intake
-        double transMax = 0.9;//shoot
+        double transMax = 0.85;//shoot
 
         //endregion
 
@@ -357,14 +357,14 @@ public class OnePersonOpMode extends LinearOpMode {
             double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
             updateCarouselPID(targetAngle, dtSec);
             //endregion
-
+/*
             if (gamepad2.squareWasPressed()) {
                 targetAngle = 90;
             }
             else{
                 targetAngle = 0;
             }
-
+*/
             if (gamepad2.dpadLeftWasPressed()) {
                 carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
                 carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
@@ -477,7 +477,7 @@ public class OnePersonOpMode extends LinearOpMode {
                     double adjustStepD = 0.00001;
                     double debounceTime = 175; // milliseconds
 
-                    if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                   /* if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                         if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                         if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                     }
@@ -488,7 +488,7 @@ public class OnePersonOpMode extends LinearOpMode {
                     if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
                         if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                         if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
-                    }
+                    }*/
 
 
 
@@ -497,12 +497,14 @@ public class OnePersonOpMode extends LinearOpMode {
                     tuKp = Math.max(0, tuKp);
                     tuKi = Math.max(0, tuKi);
                     tuKd = Math.max(0, tuKd);
-
+/*
                     // Display PID constants on telemetry
                     telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
                     telemetry.addData("kP", "%.4f", tuKp);
                     telemetry.addData("kI", "%.4f", tuKi);
                     telemetry.addData("kD", "%.4f", tuKd);
+
+ */
                 }
             }
             else{

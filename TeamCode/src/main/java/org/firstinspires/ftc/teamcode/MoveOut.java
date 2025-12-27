@@ -34,14 +34,9 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-@Autonomous(name = "RedAutoHopefully")
-public class FinalAutoHopefully extends LinearOpMode {
+@Autonomous(name = "Move Auto")
+public class MoveOut extends LinearOpMode {
     private static final Pose2d STARTING_POSE = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d SHOOT_POSE = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP1_POSE2 = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP2_POSE = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP3_POSE = new Pose2d(12, -60, Math.toRadians(90));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -165,7 +160,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         MecanumDrive drive = new MecanumDrive(hardwareMap, STARTING_POSE);
 
 
-        double flySpeed = 640;
+        double flySpeed = 635;
 
         double lastTime = 0;
 
@@ -219,7 +214,7 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .waitSeconds(1);
 
         TrajectoryActionBuilder longWait = drive.actionBuilder(STARTING_POSE)
-                .waitSeconds(9);
+                .waitSeconds(7);
 
 
         Action setTransMin = telemetryPacket -> {
@@ -242,10 +237,10 @@ public class FinalAutoHopefully extends LinearOpMode {
         };
 
         Action right = telemetryPacket -> {
-            frontLeft.setPower(1);
-            frontRight.setPower(-1);
-            backLeft.setPower(-1);
-            backRight.setPower(1);
+            frontLeft.setPower(-1);
+            frontRight.setPower(1);
+            backLeft.setPower(1);
+            backRight.setPower(-1);
             return false;
         };
 
@@ -300,24 +295,9 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .stopAndAdd(spin0);
 
         TrajectoryActionBuilder moveout = drive.actionBuilder(STARTING_POSE)
+                .stopAndAdd(forward)
                 .waitSeconds(1)
-                .stopAndAdd(right)
-                .waitSeconds(3)
                 .stopAndAdd(back2);
-
-        TrajectoryActionBuilder PickupBallsPt1 = drive.actionBuilder(PICKUP1_POSE1)
-                .splineToLinearHeading(PICKUP1_POSE1, 1)
-                .stopAndAdd(spin90);
-
-        TrajectoryActionBuilder PickupBallsPt2 = drive.actionBuilder(PICKUP1_POSE2)
-                .splineToLinearHeading(PICKUP1_POSE2, 1)
-                .stopAndAdd(spin0);
-
-        TrajectoryActionBuilder ShootPos = drive.actionBuilder(SHOOT_POSE)
-                        .splineToLinearHeading(SHOOT_POSE, 1);
-
-
-
 
 
         waitForStart();
@@ -343,15 +323,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         if (opModeIsActive()) {
             Actions.runBlocking(
                     new SequentialAction(
-                            backward.build(),
-                            longWait.build(),
-                            shoot.build(),
-                            carousel.build(),
-                            PickupBallsPt1.build(),
-                            PickupBallsPt2.build(),
-                            ShootPos.build(),
-                            shoot.build(),
-                            carousel.build()
+                            moveout.build()
                     )
             );
 
