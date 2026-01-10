@@ -39,15 +39,15 @@ import java.util.concurrent.TimeUnit;
 @Autonomous(name = "RedAutoHopefullyPt2")
 public class FinalAutoHopefullyPt2 extends LinearOpMode {
     private static final Pose2d STARTING_POSE = new Pose2d(55.5, 52, Math.toRadians(50));
-    private static final Pose2d SHOOT_POSE = new Pose2d(31, 31.5, Math.toRadians(42));
+    private static final Pose2d SHOOT_POSE = new Pose2d(31, 31.5, Math.toRadians(45));
     private static final Pose2d SHOOT_POSE1 = new Pose2d(33, 40.5, Math.toRadians(50));
 
-    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 47.5, Math.toRadians(25));
-    private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 57.5, Math.toRadians(10));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(30, 12, Math.toRadians(15));
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 53.5, Math.toRadians(40));
+    private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 60.5, Math.toRadians(20));
+    private static final Pose2d PICKUP1_POSE1 = new Pose2d(30, 8, Math.toRadians(15));
     private static final Pose2d PICKUP1_POSE2 = new Pose2d(66, 12, Math.toRadians(0));
-    private static final Pose2d PICKUP2_POSE1 = new Pose2d(30, -12, Math.toRadians(15));
-    private static final Pose2d PICKUP2_POSE2 = new Pose2d(66, -12, Math.toRadians(0));
+    private static final Pose2d PICKUP2_POSE1 = new Pose2d(30, -16, Math.toRadians(15));
+    private static final Pose2d PICKUP2_POSE2 = new Pose2d(66, -14, Math.toRadians(0));
     //asasasa
     private static final Pose2d PICKUP3_POSE1 = new Pose2d(30, -36, Math.toRadians(15));
     private static final Pose2d PICKUP3_POSE2 = new Pose2d(62, -36, Math.toRadians(0));
@@ -230,7 +230,7 @@ public class FinalAutoHopefullyPt2 extends LinearOpMode {
                 .waitSeconds(1);
 
         TrajectoryActionBuilder longWait = drive.actionBuilder(SHOOT_POSE)
-                .waitSeconds(1.5);
+                .waitSeconds(1.25);
 
 
         Action setTransMin = telemetryPacket -> {
@@ -296,7 +296,7 @@ public class FinalAutoHopefullyPt2 extends LinearOpMode {
         };
 
         Action in1 = telemetryPacket -> {
-            intake.setPower(0.8);
+            intake.setPower(1);
             return false;
         };
         Action in2 = telemetryPacket -> {
@@ -330,17 +330,17 @@ public class FinalAutoHopefullyPt2 extends LinearOpMode {
         TrajectoryActionBuilder carousel2 = drive.actionBuilder(SHOOT_POSE1)
                 .stopAndAdd(spin91)
                 .stopAndAdd(trans1)
-                .waitSeconds(3.5)
+                .waitSeconds(4)
                 .stopAndAdd(trans2);
         TrajectoryActionBuilder carousel3 = drive.actionBuilder(SHOOT_POSE2)
                 .stopAndAdd(spin91)
                 .stopAndAdd(trans1)
-                .waitSeconds(3.5)
+                .waitSeconds(4)
                 .stopAndAdd(trans2);
         TrajectoryActionBuilder carousel4 = drive.actionBuilder(SHOOT_POSE3)
                 .stopAndAdd(spin91)
                 .stopAndAdd(trans1)
-                .waitSeconds(3.5)
+                .waitSeconds(4)
                 .stopAndAdd(trans2);
 
         TrajectoryActionBuilder moveout = drive.actionBuilder(STARTING_POSE)

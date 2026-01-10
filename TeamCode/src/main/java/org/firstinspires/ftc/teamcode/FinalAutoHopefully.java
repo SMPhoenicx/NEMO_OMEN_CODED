@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+/*package org.firstinspires.ftc.teamcode;
 
 import static androidx.core.math.MathUtils.clamp;
 
@@ -250,7 +250,7 @@ public class FinalAutoHopefully extends LinearOpMode {
             backLeft.setPower(-1);
             backRight.setPower(-1);
             return false;
-        };*/
+        };
 
         Action right = telemetryPacket -> {
             frontLeft.setPower(1);
@@ -266,7 +266,7 @@ public class FinalAutoHopefully extends LinearOpMode {
             backLeft.setPower(1);
             backRight.setPower(1);
             return false;
-        };*/
+        };
 
 
         Action back2 = telemetryPacket -> {
@@ -422,7 +422,7 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         }
 
-        // After the blocking actions finish, keep the opmode alive for telemetry until stopped
+       /* // After the blocking actions finish, keep the opmode alive for telemetry until stopped
         while (opModeIsActive()) {
             follower.updatePoseEstimate();
             follower.localizer.update();
@@ -536,3 +536,4 @@ public class FinalAutoHopefully extends LinearOpMode {
     }
 
 }
+*/
