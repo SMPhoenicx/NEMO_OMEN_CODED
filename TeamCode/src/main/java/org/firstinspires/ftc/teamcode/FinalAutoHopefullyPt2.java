@@ -36,21 +36,21 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-@Autonomous(name = "RedAutoHopefully")
-public class FinalAutoHopefully extends LinearOpMode {
-    private static final Pose2d STARTING_POSE = new Pose2d(23, 53, Math.toRadians(50));
-    private static final Pose2d SHOOT_POSE = new Pose2d(0, 36, Math.toRadians(42));
-    private static final Pose2d SHOOT_POSE1 = new Pose2d(-6, 36, Math.toRadians(50));
+@Autonomous(name = "RedAutoHopefullyPt2")
+public class FinalAutoHopefullyPt2 extends LinearOpMode {
+    private static final Pose2d STARTING_POSE = new Pose2d(55.5, 52, Math.toRadians(50));
+    private static final Pose2d SHOOT_POSE = new Pose2d(33, 27.5, Math.toRadians(42));
+    private static final Pose2d SHOOT_POSE1 = new Pose2d(33, 27.5, Math.toRadians(50));
 
-    private static final Pose2d SHOOT_POSE2 = new Pose2d(-2, 50, Math.toRadians(25));
-    private static final Pose2d SHOOT_POSE3 = new Pose2d(-2, 75, Math.toRadians(10));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(7, 0, Math.toRadians(15));
-    private static final Pose2d PICKUP1_POSE2 = new Pose2d(28, 16, Math.toRadians(0));
-    private static final Pose2d PICKUP2_POSE1 = new Pose2d(7, -7, Math.toRadians(15));
-    private static final Pose2d PICKUP2_POSE2 = new Pose2d(28, -16, Math.toRadians(0));
-//asasasa
-    private static final Pose2d PICKUP3_POSE1 = new Pose2d(7, -48, Math.toRadians(15));
-    private static final Pose2d PICKUP3_POSE2 = new Pose2d(28, -38, Math.toRadians(0));
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 27.5, Math.toRadians(25));
+    private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 27.5, Math.toRadians(10));
+    private static final Pose2d PICKUP1_POSE1 = new Pose2d(34, 12, Math.toRadians(15));
+    private static final Pose2d PICKUP1_POSE2 = new Pose2d(52, 12, Math.toRadians(0));
+    private static final Pose2d PICKUP2_POSE1 = new Pose2d(34, -12, Math.toRadians(15));
+    private static final Pose2d PICKUP2_POSE2 = new Pose2d(52, -12, Math.toRadians(0));
+    //asasasa
+    private static final Pose2d PICKUP3_POSE1 = new Pose2d(34, -36, Math.toRadians(15));
+    private static final Pose2d PICKUP3_POSE2 = new Pose2d(52, -36, Math.toRadians(0));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -373,7 +373,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         TrajectoryActionBuilder PickupBallsPt6 = drive.actionBuilder(PICKUP3_POSE1)
                 .splineToLinearHeading(PICKUP3_POSE2, 1, new TranslationalVelConstraint(15));
         TrajectoryActionBuilder ShootPos = drive.actionBuilder(PICKUP1_POSE2)
-                        .splineToLinearHeading(SHOOT_POSE1, 1);
+                .splineToLinearHeading(SHOOT_POSE1, 1);
         TrajectoryActionBuilder ShootPos1 = drive.actionBuilder(PICKUP2_POSE2)
                 .splineToLinearHeading(SHOOT_POSE2, 1);
         TrajectoryActionBuilder ShootPos2 = drive.actionBuilder(PICKUP3_POSE2)
