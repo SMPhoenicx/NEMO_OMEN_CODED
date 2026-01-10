@@ -325,7 +325,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         TrajectoryActionBuilder carousel1 = drive.actionBuilder(SHOOT_POSE)
                 .stopAndAdd(spin91)
                 .stopAndAdd(trans1)
-                .waitSeconds(3.5)
+                .waitSeconds(4)
                 .stopAndAdd(trans2);
         TrajectoryActionBuilder carousel2 = drive.actionBuilder(SHOOT_POSE1)
                 .stopAndAdd(spin91)
