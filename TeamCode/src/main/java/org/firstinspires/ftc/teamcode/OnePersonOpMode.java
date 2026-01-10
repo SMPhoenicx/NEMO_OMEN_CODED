@@ -274,7 +274,7 @@ public class OnePersonOpMode extends LinearOpMode {
         runtime.reset();
 
         follower = new MecanumDrive(hardwareMap, STARTING_POSE);
-        follower.updatePoseEstimate();
+        follower.localizer.setPose(StateVars.lastPose);
 
         while (opModeIsActive()) {
 
