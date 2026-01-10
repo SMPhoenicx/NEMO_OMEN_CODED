@@ -48,7 +48,7 @@ public class FinalAutoHopefully extends LinearOpMode {
     private static final Pose2d PICKUP1_POSE2 = new Pose2d(28, 16, Math.toRadians(0));
     private static final Pose2d PICKUP2_POSE1 = new Pose2d(7, -7, Math.toRadians(15));
     private static final Pose2d PICKUP2_POSE2 = new Pose2d(28, -16, Math.toRadians(0));
-
+//asasasa
     private static final Pose2d PICKUP3_POSE1 = new Pose2d(7, -48, Math.toRadians(15));
     private static final Pose2d PICKUP3_POSE2 = new Pose2d(28, -38, Math.toRadians(0));
     private ElapsedTime pidTimer = new ElapsedTime();
