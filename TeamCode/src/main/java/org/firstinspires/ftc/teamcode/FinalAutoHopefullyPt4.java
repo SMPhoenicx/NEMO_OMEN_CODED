@@ -38,19 +38,19 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 @Autonomous(name = "BlueAutoHopefully")
 public class FinalAutoHopefullyPt4 extends LinearOpMode {
-    private static final Pose2d STARTING_POSE = new Pose2d(-23, 53, Math.toRadians(310));
+    private static final Pose2d STARTING_POSE = new Pose2d(23, 53, Math.toRadians(310));
     private static final Pose2d SHOOT_POSE = new Pose2d(0, 36, Math.toRadians(318));
-    private static final Pose2d SHOOT_POSE1 = new Pose2d(6, 36, Math.toRadians(310));
+    private static final Pose2d SHOOT_POSE1 = new Pose2d(-6, 36, Math.toRadians(310));
 
-    private static final Pose2d SHOOT_POSE2 = new Pose2d(2, 50, Math.toRadians(335));
-    private static final Pose2d SHOOT_POSE3 = new Pose2d(2, 75, Math.toRadians(350));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(-7, 0, Math.toRadians(345));
-    private static final Pose2d PICKUP1_POSE2 = new Pose2d(-28, 16, Math.toRadians(360));
-    private static final Pose2d PICKUP2_POSE1 = new Pose2d(-7, -7, Math.toRadians(345));
-    private static final Pose2d PICKUP2_POSE2 = new Pose2d(-28, -16, Math.toRadians(360));
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(-2, 50, Math.toRadians(335));
+    private static final Pose2d SHOOT_POSE3 = new Pose2d(-2, 75, Math.toRadians(350));
+    private static final Pose2d PICKUP1_POSE1 = new Pose2d(7, 0, Math.toRadians(345));
+    private static final Pose2d PICKUP1_POSE2 = new Pose2d(28, 16, Math.toRadians(360));
+    private static final Pose2d PICKUP2_POSE1 = new Pose2d(7, -7, Math.toRadians(345));
+    private static final Pose2d PICKUP2_POSE2 = new Pose2d(28, -16, Math.toRadians(360));
     //asasasa
-    private static final Pose2d PICKUP3_POSE1 = new Pose2d(-7, -48, Math.toRadians(345));
-    private static final Pose2d PICKUP3_POSE2 = new Pose2d(-28, -38, Math.toRadians(360));
+    private static final Pose2d PICKUP3_POSE1 = new Pose2d(7, -48, Math.toRadians(345));
+    private static final Pose2d PICKUP3_POSE2 = new Pose2d(28, -38, Math.toRadians(360));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
