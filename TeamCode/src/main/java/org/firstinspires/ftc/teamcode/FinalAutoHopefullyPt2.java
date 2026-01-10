@@ -39,18 +39,18 @@ import java.util.concurrent.TimeUnit;
 @Autonomous(name = "RedAutoHopefullyPt2")
 public class FinalAutoHopefullyPt2 extends LinearOpMode {
     private static final Pose2d STARTING_POSE = new Pose2d(55.5, 52, Math.toRadians(50));
-    private static final Pose2d SHOOT_POSE = new Pose2d(33, 27.5, Math.toRadians(42));
-    private static final Pose2d SHOOT_POSE1 = new Pose2d(33, 27.5, Math.toRadians(50));
+    private static final Pose2d SHOOT_POSE = new Pose2d(31, 31.5, Math.toRadians(42));
+    private static final Pose2d SHOOT_POSE1 = new Pose2d(33, 40.5, Math.toRadians(50));
 
-    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 27.5, Math.toRadians(25));
-    private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 27.5, Math.toRadians(10));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(34, 12, Math.toRadians(15));
-    private static final Pose2d PICKUP1_POSE2 = new Pose2d(52, 12, Math.toRadians(0));
-    private static final Pose2d PICKUP2_POSE1 = new Pose2d(34, -12, Math.toRadians(15));
-    private static final Pose2d PICKUP2_POSE2 = new Pose2d(52, -12, Math.toRadians(0));
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 47.5, Math.toRadians(25));
+    private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 57.5, Math.toRadians(10));
+    private static final Pose2d PICKUP1_POSE1 = new Pose2d(30, 12, Math.toRadians(15));
+    private static final Pose2d PICKUP1_POSE2 = new Pose2d(66, 12, Math.toRadians(0));
+    private static final Pose2d PICKUP2_POSE1 = new Pose2d(30, -12, Math.toRadians(15));
+    private static final Pose2d PICKUP2_POSE2 = new Pose2d(66, -12, Math.toRadians(0));
     //asasasa
-    private static final Pose2d PICKUP3_POSE1 = new Pose2d(34, -36, Math.toRadians(15));
-    private static final Pose2d PICKUP3_POSE2 = new Pose2d(52, -36, Math.toRadians(0));
+    private static final Pose2d PICKUP3_POSE1 = new Pose2d(30, -36, Math.toRadians(15));
+    private static final Pose2d PICKUP3_POSE2 = new Pose2d(62, -36, Math.toRadians(0));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;

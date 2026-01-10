@@ -424,7 +424,9 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         // After the blocking actions finish, keep the opmode alive for telemetry until stopped
         while (opModeIsActive()) {
-
+            follower.updatePoseEstimate();
+            follower.localizer.update();
+            StateVars.lastPose = localizer.getPose();
             telemetry.addData("Carousel Index", carouselIndex);
             telemetry.addData("Spin Position", getSpinPosition());
             telemetry.update();
