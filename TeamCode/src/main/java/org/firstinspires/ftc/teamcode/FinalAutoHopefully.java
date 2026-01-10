@@ -8,6 +8,8 @@ import android.util.Size;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
+import com.acmerobotics.roadrunner.TranslationalVelConstraint;
+import com.acmerobotics.roadrunner.VelConstraint;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -36,12 +38,19 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 @Autonomous(name = "RedAutoHopefully")
 public class FinalAutoHopefully extends LinearOpMode {
-    private static final Pose2d STARTING_POSE = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d SHOOT_POSE = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP1_POSE2 = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP2_POSE = new Pose2d(12, -60, Math.toRadians(90));
-    private static final Pose2d PICKUP3_POSE = new Pose2d(12, -60, Math.toRadians(90));
+    private static final Pose2d STARTING_POSE = new Pose2d(23, 53, Math.toRadians(50));
+    private static final Pose2d SHOOT_POSE = new Pose2d(0, 36, Math.toRadians(42));
+    private static final Pose2d SHOOT_POSE1 = new Pose2d(-6, 36, Math.toRadians(50));
+
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(-2, 50, Math.toRadians(25));
+    private static final Pose2d SHOOT_POSE3 = new Pose2d(-2, 75, Math.toRadians(10));
+    private static final Pose2d PICKUP1_POSE1 = new Pose2d(7, 0, Math.toRadians(15));
+    private static final Pose2d PICKUP1_POSE2 = new Pose2d(28, 16, Math.toRadians(0));
+    private static final Pose2d PICKUP2_POSE1 = new Pose2d(7, -24, Math.toRadians(15));
+    private static final Pose2d PICKUP2_POSE2 = new Pose2d(28, -11, Math.toRadians(0));
+
+    private static final Pose2d PICKUP3_POSE1 = new Pose2d(7, -48, Math.toRadians(15));
+    private static final Pose2d PICKUP3_POSE2 = new Pose2d(28, -38, Math.toRadians(0));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -58,6 +67,7 @@ public class FinalAutoHopefully extends LinearOpMode {
     private DcMotorEx fly1 = null;
     private DcMotorEx fly2 = null;
     private DcMotor intake = null;
+    private DcMotor transfer = null;
     // Servos
     private Servo vertTrans;  // Vertical actuator
     private CRServo spin = null;    // spino
@@ -165,7 +175,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         MecanumDrive drive = new MecanumDrive(hardwareMap, STARTING_POSE);
 
 
-        double flySpeed = 640;
+        double flySpeed = 1400;
 
         double lastTime = 0;
 
@@ -184,6 +194,7 @@ public class FinalAutoHopefully extends LinearOpMode {
         fly1 = hardwareMap.get(DcMotorEx.class, "fly1");
         fly2 = hardwareMap.get(DcMotorEx.class, "fly2");
         intake = hardwareMap.get(DcMotor.class, "in");
+        transfer = hardwareMap.get(DcMotor.class, "transfer");
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         vertTrans = hardwareMap.get(Servo.class, "vtrans");
@@ -215,11 +226,11 @@ public class FinalAutoHopefully extends LinearOpMode {
         telemetry.addData(">", "Touch START to start OpMode");
         telemetry.update();
 
-        TrajectoryActionBuilder shortWait = drive.actionBuilder(STARTING_POSE)
+        TrajectoryActionBuilder shortWait = drive.actionBuilder(SHOOT_POSE)
                 .waitSeconds(1);
 
-        TrajectoryActionBuilder longWait = drive.actionBuilder(STARTING_POSE)
-                .waitSeconds(9);
+        TrajectoryActionBuilder longWait = drive.actionBuilder(SHOOT_POSE)
+                .waitSeconds(1.5);
 
 
         Action setTransMin = telemetryPacket -> {
@@ -233,13 +244,13 @@ public class FinalAutoHopefully extends LinearOpMode {
         };
 
         // spin90
-        Action back = telemetryPacket -> {
+        /*Action back = telemetryPacket -> {
             frontLeft.setPower(-1);
             frontRight.setPower(-1);
             backLeft.setPower(-1);
             backRight.setPower(-1);
             return false;
-        };
+        };*/
 
         Action right = telemetryPacket -> {
             frontLeft.setPower(1);
@@ -249,13 +260,13 @@ public class FinalAutoHopefully extends LinearOpMode {
             return false;
         };
 
-        Action forward = telemetryPacket -> {
+        /*Action forward = telemetryPacket -> {
             frontLeft.setPower(1);
             frontRight.setPower(1);
             backLeft.setPower(1);
             backRight.setPower(1);
             return false;
-        };
+        };*/
 
 
         Action back2 = telemetryPacket -> {
@@ -272,12 +283,32 @@ public class FinalAutoHopefully extends LinearOpMode {
         };
 
         Action spin90 = telemetryPacket -> {
-            spin.setPower(0.25);
+            spin.setPower(-1);
+            return false;
+        };
+        Action spin91 = telemetryPacket -> {
+            spin.setPower(0.15);
+            return false;
+        };
+        Action spin0 = telemetryPacket -> {
+            spin.setPower(0);
             return false;
         };
 
-        Action spin0 = telemetryPacket -> {
-            spin.setPower(0);
+        Action in1 = telemetryPacket -> {
+            intake.setPower(0.8);
+            return false;
+        };
+        Action in2 = telemetryPacket -> {
+            intake.setPower(0);
+            return false;
+        };
+        Action trans1 = telemetryPacket -> {
+            transfer.setPower(-1);
+            return false;
+        };
+        Action trans2 = telemetryPacket -> {
+            transfer.setPower(0);
             return false;
         };
 
@@ -288,16 +319,29 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         // Carrousel action builder
         TrajectoryActionBuilder backward = drive.actionBuilder(STARTING_POSE)
-                .stopAndAdd(back)
-                .waitSeconds(1.05)
-                .stopAndAdd(back2);
+                .splineToLinearHeading(SHOOT_POSE, 1);
 
 
-
-        TrajectoryActionBuilder carousel = drive.actionBuilder(STARTING_POSE)
-                .stopAndAdd(spin90)
-                .waitSeconds(3)
-                .stopAndAdd(spin0);
+        TrajectoryActionBuilder carousel1 = drive.actionBuilder(SHOOT_POSE)
+                .stopAndAdd(spin91)
+                .stopAndAdd(trans1)
+                .waitSeconds(3.5)
+                .stopAndAdd(trans2);
+        TrajectoryActionBuilder carousel2 = drive.actionBuilder(SHOOT_POSE1)
+                .stopAndAdd(spin91)
+                .stopAndAdd(trans1)
+                .waitSeconds(3.5)
+                .stopAndAdd(trans2);
+        TrajectoryActionBuilder carousel3 = drive.actionBuilder(SHOOT_POSE2)
+                .stopAndAdd(spin91)
+                .stopAndAdd(trans1)
+                .waitSeconds(3.5)
+                .stopAndAdd(trans2);
+        TrajectoryActionBuilder carousel4 = drive.actionBuilder(SHOOT_POSE3)
+                .stopAndAdd(spin91)
+                .stopAndAdd(trans1)
+                .waitSeconds(3.5)
+                .stopAndAdd(trans2);
 
         TrajectoryActionBuilder moveout = drive.actionBuilder(STARTING_POSE)
                 .waitSeconds(1)
@@ -305,19 +349,35 @@ public class FinalAutoHopefully extends LinearOpMode {
                 .waitSeconds(3)
                 .stopAndAdd(back2);
 
-        TrajectoryActionBuilder PickupBallsPt1 = drive.actionBuilder(PICKUP1_POSE1)
-                .splineToLinearHeading(PICKUP1_POSE1, 1)
-                .stopAndAdd(spin90);
-
-        TrajectoryActionBuilder PickupBallsPt2 = drive.actionBuilder(PICKUP1_POSE2)
-                .splineToLinearHeading(PICKUP1_POSE2, 1)
-                .stopAndAdd(spin0);
-
-        TrajectoryActionBuilder ShootPos = drive.actionBuilder(SHOOT_POSE)
-                        .splineToLinearHeading(SHOOT_POSE, 1);
+        TrajectoryActionBuilder PickupBallsPt1 = drive.actionBuilder(SHOOT_POSE)
+                .stopAndAdd(in1)
+                .stopAndAdd(spin91)
+                .splineToLinearHeading(PICKUP1_POSE1, 1);
 
 
+        TrajectoryActionBuilder PickupBallsPt2 = drive.actionBuilder(PICKUP1_POSE1)
+                .splineToLinearHeading(PICKUP1_POSE2, 1, new TranslationalVelConstraint(15));
+        TrajectoryActionBuilder PickupBallsPt3 = drive.actionBuilder(SHOOT_POSE1)
+                .stopAndAdd(spin91)
+                .splineToLinearHeading(PICKUP2_POSE1, 1);
 
+
+        TrajectoryActionBuilder PickupBallsPt4 = drive.actionBuilder(PICKUP2_POSE1)
+                .splineToLinearHeading(PICKUP2_POSE2, 1, new TranslationalVelConstraint(15
+                ));
+        TrajectoryActionBuilder PickupBallsPt5 = drive.actionBuilder(SHOOT_POSE1)
+                .stopAndAdd(spin91)
+                .splineToLinearHeading(PICKUP3_POSE1, 1);
+
+
+        TrajectoryActionBuilder PickupBallsPt6 = drive.actionBuilder(PICKUP3_POSE1)
+                .splineToLinearHeading(PICKUP3_POSE2, 1, new TranslationalVelConstraint(15));
+        TrajectoryActionBuilder ShootPos = drive.actionBuilder(PICKUP1_POSE2)
+                        .splineToLinearHeading(SHOOT_POSE1, 1);
+        TrajectoryActionBuilder ShootPos1 = drive.actionBuilder(PICKUP2_POSE2)
+                .splineToLinearHeading(SHOOT_POSE2, 1);
+        TrajectoryActionBuilder ShootPos2 = drive.actionBuilder(PICKUP3_POSE2)
+                .splineToLinearHeading(SHOOT_POSE3, 1);
 
 
         waitForStart();
@@ -325,15 +385,14 @@ public class FinalAutoHopefully extends LinearOpMode {
 
         vertTranAngle = transMin;
         flyOn = true;
-        intakeOn = true;
 
 
         if (flyOn) {
             fly1.setVelocity(flySpeed);
             fly2.setVelocity(flySpeed);
         }
-        if (intakeOn) {
-            intake.setPower(1);
+        if (transferOn) {
+            transfer.setPower(-1);
         }
 
         //region WHILE OPMODE ACTIVE
@@ -345,13 +404,19 @@ public class FinalAutoHopefully extends LinearOpMode {
                     new SequentialAction(
                             backward.build(),
                             longWait.build(),
-                            shoot.build(),
-                            carousel.build(),
+                            carousel1.build(),
                             PickupBallsPt1.build(),
                             PickupBallsPt2.build(),
                             ShootPos.build(),
-                            shoot.build(),
-                            carousel.build()
+                            carousel2.build(),
+                            PickupBallsPt3.build(),
+                            PickupBallsPt4.build(),
+                            ShootPos1.build(),
+                            carousel3.build(),
+                            PickupBallsPt5.build(),
+                            PickupBallsPt6.build(),
+                            ShootPos2.build(),
+                            carousel4.build()
                     )
             );
 
