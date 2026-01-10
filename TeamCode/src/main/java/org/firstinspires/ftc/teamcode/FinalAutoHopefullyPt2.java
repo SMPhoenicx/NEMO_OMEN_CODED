@@ -52,6 +52,7 @@ public class FinalAutoHopefullyPt2 extends LinearOpMode {
     private static final Pose2d PICKUP3_POSE1 = new Pose2d(30, -36, Math.toRadians(15));
     private static final Pose2d PICKUP3_POSE2 = new Pose2d(62, -36, Math.toRadians(0));
     private ElapsedTime pidTimer = new ElapsedTime();
+    private MecanumDrive follower;
     double TURN_P = 0.06;
     double TURN_D = 0.002;
     final double TURN_GAIN = 0.02;
@@ -421,10 +422,13 @@ public class FinalAutoHopefullyPt2 extends LinearOpMode {
             );
 
         }
-
+        follower = new MecanumDrive(hardwareMap, STARTING_POSE);
+        follower.updatePoseEstimate();
         // After the blocking actions finish, keep the opmode alive for telemetry until stopped
         while (opModeIsActive()) {
-
+            follower.updatePoseEstimate();
+            follower.localizer.update();
+            StateVars.lastPose = follower.localizer.getPose();
             telemetry.addData("Carousel Index", carouselIndex);
             telemetry.addData("Spin Position", getSpinPosition());
             telemetry.update();

@@ -274,7 +274,7 @@ public class OnePersonOpMode extends LinearOpMode {
         runtime.reset();
 
         follower = new MecanumDrive(hardwareMap, STARTING_POSE);
-        follower.updatePoseEstimate();
+        follower.localizer.setPose(StateVars.lastPose);
 
         while (opModeIsActive()) {
 
@@ -684,7 +684,7 @@ public class OnePersonOpMode extends LinearOpMode {
             double adjustStepD = 0.00001;
             double debounceTime = 175; // milliseconds
 
-            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+            /*if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
@@ -695,7 +695,7 @@ public class OnePersonOpMode extends LinearOpMode {
             if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
                 if (gamepad1.square) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.circle) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
-            }
+            }*/
 
 
 
