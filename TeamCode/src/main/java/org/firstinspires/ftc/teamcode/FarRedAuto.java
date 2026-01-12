@@ -2,14 +2,10 @@ package org.firstinspires.ftc.teamcode;
 
 import static androidx.core.math.MathUtils.clamp;
 
-import android.net.wifi.p2p.WifiP2pConfig;
-import android.util.Size;
-
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.acmerobotics.roadrunner.TranslationalVelConstraint;
-import com.acmerobotics.roadrunner.VelConstraint;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -17,40 +13,30 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-import com.acmerobotics.roadrunner.ParallelAction;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.acmerobotics.roadrunner.Pose2d;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-@Autonomous(name = "BlueAutoHopefullyPt2")
-public class FInalAutoHopefullyPt3 extends LinearOpMode {
-    private static final Pose2d STARTING_POSE = new Pose2d(-55.5, 52, Math.toRadians(310));
-    private static final Pose2d SHOOT_POSE = new Pose2d(-33, 27.5, Math.toRadians(318));
-    private static final Pose2d SHOOT_POSE1 = new Pose2d(-33, 27.5, Math.toRadians(310));
+@Autonomous(name = "Red12BallFar")
+public class FarRedAuto extends LinearOpMode {
+    private static final Pose2d STARTING_POSE = new Pose2d(11, -63, Math.toRadians(310));
+    private static final Pose2d SHOOT_POSE = new Pose2d(31, 27.5, Math.toRadians(318));
+    private static final Pose2d SHOOT_POSE1 = new Pose2d(33, 27.5, Math.toRadians(310));
 
-    private static final Pose2d SHOOT_POSE2 = new Pose2d(-33, 27.5, Math.toRadians(335));
-    private static final Pose2d SHOOT_POSE3 = new Pose2d(-33, 27.5, Math.toRadians(350));
-    private static final Pose2d PICKUP1_POSE1 = new Pose2d(-34, 12, Math.toRadians(345));
-    private static final Pose2d PICKUP1_POSE2 = new Pose2d(-52, 12, Math.toRadians(360));
-    private static final Pose2d PICKUP2_POSE1 = new Pose2d(-34, -12, Math.toRadians(345));
-    private static final Pose2d PICKUP2_POSE2 = new Pose2d(-52, -12, Math.toRadians(360));
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 27.5, Math.toRadians(335));
+    private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 27.5, Math.toRadians(350));
+    private static final Pose2d PICKUP3_POSE1 = new Pose2d(30, 12, Math.toRadians(345));
+    private static final Pose2d PICKUP3_POSE2 = new Pose2d(66, 12, Math.toRadians(360));
+    private static final Pose2d PICKUP2_POSE1 = new Pose2d(30, -12, Math.toRadians(345));
+    private static final Pose2d PICKUP2_POSE2 = new Pose2d(66, -12, Math.toRadians(360));
     //asasasa
-    private static final Pose2d PICKUP3_POSE1 = new Pose2d(-34, -36, Math.toRadians(345));
-    private static final Pose2d PICKUP3_POSE2 = new Pose2d(-52, -36, Math.toRadians(360));
+    private static final Pose2d PICKUP1_POSE1 = new Pose2d(30, -36, Math.toRadians(345));
+    private static final Pose2d PICKUP1_POSE2 = new Pose2d(62, -36, Math.toRadians(360));
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -173,7 +159,6 @@ public class FInalAutoHopefullyPt3 extends LinearOpMode {
         double hoodAngle = 0;
 
         MecanumDrive drive = new MecanumDrive(hardwareMap, STARTING_POSE);
-
 
         double flySpeed = 1400;
 
@@ -398,6 +383,8 @@ public class FInalAutoHopefullyPt3 extends LinearOpMode {
         //region WHILE OPMODE ACTIVE
         double lastLoopMs = runtime.milliseconds();
         double dtSec = 0.0;
+        MecanumDrive follower = new MecanumDrive(hardwareMap, STARTING_POSE);
+        follower.updatePoseEstimate();
 
         if (opModeIsActive()) {
             Actions.runBlocking(
@@ -424,6 +411,9 @@ public class FInalAutoHopefullyPt3 extends LinearOpMode {
 
         // After the blocking actions finish, keep the opmode alive for telemetry until stopped
         while (opModeIsActive()) {
+            follower.updatePoseEstimate();
+            follower.localizer.update();
+            StateVars.lastPose = follower.localizer.getPose();
 
             telemetry.addData("Carousel Index", carouselIndex);
             telemetry.addData("Spin Position", getSpinPosition());

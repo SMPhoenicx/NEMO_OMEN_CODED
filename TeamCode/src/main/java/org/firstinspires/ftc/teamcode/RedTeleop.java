@@ -2,14 +2,12 @@ package org.firstinspires.ftc.teamcode;
 
 import android.util.Size;
 
-import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -18,22 +16,20 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.teamcode.messages.MecanumLocalizerInputsMessage;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.acmerobotics.roadrunner.Pose2d;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-import org.firstinspires.ftc.teamcode.MecanumDrive;
 
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-@TeleOp(name="NothingBreakPls", group="Linear OpMode")
-public class OnePersonOpMode extends LinearOpMode {
+@TeleOp(name="RedTeleop", group="Linear OpMode")
+public class RedTeleop extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
@@ -66,7 +62,7 @@ public class OnePersonOpMode extends LinearOpMode {
     private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
     private static final double[] ODOM_RANGE_SAMPLES =  {31.6, 44.8, 50, 55.1, 60.4, 65.5, 71.1, 76.3, 81.2, 85.8, 90.3};
-    private static final double[] FLY_SPEEDS =          {1400, 1470, 1540, 1610, 1780, 1850, 1920, 2100, 2200, 2300, 2400};
+    private static final double[] FLY_SPEEDS =          {1400, 1470, 1540, 1610, 1780, 1850, 1229, 1255, 1263, 1267, 1254};
     private static final double[] HOOD_ANGLES =         {89.6, 3.5, -40.9, -68.1, -73.3, -83.3, -119.2, -122.4, -122.7, -126.5, -126.5};
     //SENSOR
     private AnalogInput spinEncoder;
@@ -115,8 +111,6 @@ public class OnePersonOpMode extends LinearOpMode {
     private double tuKi = 0;
     private double tuKd = 0;
     private double tuKf = 0;
-    private Pose2d goalpose1 = new Pose2d(55.5, 52, Math.toRadians(50));
-    private Pose2d goalpose2 = new Pose2d(-23, 53, Math.toRadians(140));
 
     // Carousel PID State
     private double tuLastTimeMs = 0.0;
@@ -177,8 +171,8 @@ public class OnePersonOpMode extends LinearOpMode {
     private Pose2d pose;
     public static MecanumDrive.Params PARAMS = new MecanumDrive.Params();
     private ElapsedTime runtime = new ElapsedTime();
-    private static final double goalX = 0;
-    private static final double goalY = 144.0;
+    private static final double goalX = 72;
+    private static final double goalY = 72;
 
     @Override
     public void runOpMode() {
@@ -426,14 +420,14 @@ public class OnePersonOpMode extends LinearOpMode {
             //endregion
             //region INTAKE CONTROL
             if (gamepad1.rightBumperWasPressed()) {
-                intakePower = 1;
+                intakePower = 0.75;
                 Gogogo1 = !Gogogo1;
                 intakeOn = !intakeOn;
             }
 
             // Outtake
             if (gamepad1.leftBumperWasPressed()) {
-                intakePower = -0.7;
+                intakePower = -0.5;
             }
 
             if (intakeOn) {
@@ -527,12 +521,12 @@ public class OnePersonOpMode extends LinearOpMode {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
                     carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
                 }
-                    updateCarouselPID(targetAngle, dtSec);
+                updateCarouselPID(targetAngle, dtSec);
                 if (Gogogo1){
                     spin.setPower(1);
                     transfer.setPower(0.2);
                 }
-                }
+            }
             else{
                 transfer.setPower(-1);
                 spin.setPower(0.2);
@@ -577,18 +571,10 @@ public class OnePersonOpMode extends LinearOpMode {
                 localizationSamples.clear();
             }
             if (gamepad1.triangleWasPressed()) {
-                /*trackingOn = !trackingOn;
+                trackingOn = !trackingOn;
                 tuIntegral = 0.0;
                 tuLastError = 0.0;
-                lastTuTargetInit = false;*/
-                follower.localizer.setPose(goalpose1);
-            }
-            if (gamepad1.circleWasPressed()) {
-                /*trackingOn = !trackingOn;
-                tuIntegral = 0.0;
-                tuLastError = 0.0;
-                lastTuTargetInit = false;*/
-                follower.localizer.setPose(goalpose2);
+                lastTuTargetInit = false;
             }
 
 
@@ -636,8 +622,8 @@ public class OnePersonOpMode extends LinearOpMode {
                     pidTimer.reset();
 
 //                    if (Math.abs(headingError) < 2.0) {
-  //                      turn = 0;
- //                   } else {
+                    //                      turn = 0;
+                    //                   } else {
 //                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
 //                    }
 
@@ -666,11 +652,11 @@ public class OnePersonOpMode extends LinearOpMode {
                         pidTimer.reset();
 
 //                        if (Math.abs(headingError) < 2.0) {
-  //                          turn = 0;
-    //                    } else {
-      //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
-        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-          //              }
+                        //                          turn = 0;
+                        //                    } else {
+                        //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
+                        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+                        //              }
 
                         lastHeadingError = headingError;
 
