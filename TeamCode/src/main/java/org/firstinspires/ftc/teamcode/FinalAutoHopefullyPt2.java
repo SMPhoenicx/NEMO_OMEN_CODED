@@ -42,7 +42,7 @@ public class FinalAutoHopefullyPt2 extends LinearOpMode {
     private static final Pose2d SHOOT_POSE = new Pose2d(31, 31.5, Math.toRadians(45));
     private static final Pose2d SHOOT_POSE1 = new Pose2d(33, 40.5, Math.toRadians(50));
 
-    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 53.5, Math.toRadians(40));
+    private static final Pose2d SHOOT_POSE2 = new Pose2d(33, 53.5, Math.toRadians(50));
     private static final Pose2d SHOOT_POSE3 = new Pose2d(33, 60.5, Math.toRadians(20));
     private static final Pose2d PICKUP1_POSE1 = new Pose2d(30, 8, Math.toRadians(15));
     private static final Pose2d PICKUP1_POSE2 = new Pose2d(66, 12, Math.toRadians(0));
