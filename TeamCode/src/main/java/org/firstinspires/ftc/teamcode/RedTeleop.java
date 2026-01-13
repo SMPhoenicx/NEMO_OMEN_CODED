@@ -61,9 +61,9 @@ public class RedTeleop extends LinearOpMode {
     private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {31.6, 44.8, 50, 55.1, 60.4, 65.5, 71.1, 76.3, 81.2, 85.8, 90.3};
-    private static final double[] FLY_SPEEDS =          {1400, 1470, 1540, 1610, 1780, 1850, 1229, 1255, 1263, 1267, 1254};
-    private static final double[] HOOD_ANGLES =         {89.6, 3.5, -40.9, -68.1, -73.3, -83.3, -119.2, -122.4, -122.7, -126.5, -126.5};
+    private static final double[] ODOM_RANGE_SAMPLES =  {31.6, 44.8, 50, 55.1, 60.4, 65.5, 71.1, 76.3, 81.2, 85.8, 90.3, 144};
+    private static final double[] FLY_SPEEDS =          {1400, 1470, 1540, 1610, 1780, 1850, 1920, 2100, 2200, 2300, 2400, 3000};
+    private static final double[] HOOD_ANGLES =         {0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7};
     //SENSOR
     private AnalogInput spinEncoder;
     private static final int LOCALIZATION_SAMPLE_COUNT = 7;
@@ -420,14 +420,14 @@ public class RedTeleop extends LinearOpMode {
             //endregion
             //region INTAKE CONTROL
             if (gamepad1.rightBumperWasPressed()) {
-                intakePower = 0.75;
+                intakePower = 1;
                 Gogogo1 = !Gogogo1;
                 intakeOn = !intakeOn;
             }
 
             // Outtake
             if (gamepad1.leftBumperWasPressed()) {
-                intakePower = -0.5;
+                intakePower = -0.7;
             }
 
             if (intakeOn) {
@@ -564,51 +564,39 @@ public class RedTeleop extends LinearOpMode {
                 fly2.setVelocity(0);
             }
 
-            if (gamepad1.squareWasPressed()) {
+            /*if (gamepad1.squareWasPressed()) {
                 tuPos = turretZeroDeg;
                 hasTeleopLocalized = false;
                 localizeTime = runtime.milliseconds();
                 localizationSamples.clear();
-            }
+            }*/
             if (gamepad1.triangleWasPressed()) {
                 trackingOn = !trackingOn;
                 tuIntegral = 0.0;
                 tuLastError = 0.0;
                 lastTuTargetInit = false;
             }
-
-
             //region GOAL TRACKING
             if (trackingOn) {
                 if (!hasTeleopLocalized) {
-                    tuPos = turretZeroDeg;
-                    if (Math.abs(gamepad1.right_stick_x) < 0.06
-                            && Math.abs(gamepad1.left_stick_y) < 0.06
-                            && Math.abs(gamepad1.left_stick_x) < 0.06) {
-                        if (runtime.milliseconds() - localizeTime > 300) {
-                            if (targetFound && desiredTag != null && desiredTag.metadata != null) {
-                                boolean ok = applyInitialAprilLocalization(desiredTag);
-                                if (ok) {
-                                    hasTeleopLocalized = true;
-
-                                    tuIntegral = 0.0;
-                                    tuLastError = 0.0;
-                                    lastTuTargetInit = false;
-                                    isInitialized = false;
-                                }
-                            }
-                        }
-                    }
+                     tuPos = turretZeroDeg;
                 }
                 else {
                     tuPos = calcTuTarget(
-                            robotPose.position.x, robotPose.position.x,
-                            robotPose.heading.real
-                    );
+                            robotPose.position.x,
+                            robotPose.position.y,
+                            robotPose.heading.real)
+                            + turretTrackingOffset;
+
                 }
             }
             //endregion
-            if (facingGoal) {
+            if (!trackingOn) {
+                //zeros position
+                tuPos = normalizeDeg180(turretZeroDeg);
+            }
+
+            /*if (facingGoal) {
                 turn  = -gamepad1.right_stick_x;
                 if (targetFound) {
                     lastKnownBearing = desiredTag.ftcPose.bearing;
@@ -622,8 +610,8 @@ public class RedTeleop extends LinearOpMode {
                     pidTimer.reset();
 
 //                    if (Math.abs(headingError) < 2.0) {
-                    //                      turn = 0;
-                    //                   } else {
+  //                      turn = 0;
+ //                   } else {
 //                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
 //                    }
 
@@ -652,11 +640,11 @@ public class RedTeleop extends LinearOpMode {
                         pidTimer.reset();
 
 //                        if (Math.abs(headingError) < 2.0) {
-                        //                          turn = 0;
-                        //                    } else {
-                        //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
-                        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-                        //              }
+  //                          turn = 0;
+    //                    } else {
+      //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
+        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
+          //              }
 
                         lastHeadingError = headingError;
 
@@ -670,11 +658,11 @@ public class RedTeleop extends LinearOpMode {
 
 
                 }
-            }
-            else{
-                turn  = -gamepad1.right_stick_x;
-                lastHeadingError = 0;                 pidTimer.reset();
-            }
+            }*/
+            //else{
+            turn  = -gamepad1.right_stick_x;
+            //lastHeadingError = 0;                 pidTimer.reset();
+            //}
             double adjustStepP = 0.0002;
             double adjustStepI = 0.0002;
             double adjustStepD = 0.00001;
