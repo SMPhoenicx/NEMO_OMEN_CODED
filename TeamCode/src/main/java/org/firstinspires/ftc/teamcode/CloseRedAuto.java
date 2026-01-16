@@ -291,7 +291,7 @@ public class CloseRedAuto extends LinearOpMode {
             return false;
         };
         Action trans1 = telemetryPacket -> {
-            transfer.setPower(-1);
+            transfer.setPower(1);
             return false;
         };
         Action trans2 = telemetryPacket -> {
