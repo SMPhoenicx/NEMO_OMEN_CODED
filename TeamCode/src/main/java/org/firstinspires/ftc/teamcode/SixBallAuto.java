@@ -105,7 +105,6 @@ public class SixBallAuto extends LinearOpMode {
     private static final long PREDICTION_TIMEOUT = 500;
     private double lastHeadingError = 0;
 
-    OnePersonOpMode One = new OnePersonOpMode();
 
     private ElapsedTime runtime = new ElapsedTime();
 

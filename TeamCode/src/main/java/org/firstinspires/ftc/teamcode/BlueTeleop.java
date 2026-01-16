@@ -83,7 +83,7 @@ public class BlueTeleop extends LinearOpMode {
     // Turret Position
     private double tuPos = 0;
 
-    private static final double turretZeroDeg = 97;
+    private static final double turretZeroDeg = 160;
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = 0;
@@ -107,12 +107,10 @@ public class BlueTeleop extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0;
+    private double tuKp = 0.0064;
     private double tuKi = 0;
-    private double tuKd = 0;
+    private double tuKd = 0.0008;
     private double tuKf = 0;
-    private Pose2d goalpose1 = new Pose2d(55.5, 52, Math.toRadians(50));
-    private Pose2d goalpose2 = new Pose2d(-23, 53, Math.toRadians(140));
 
     // Carousel PID State
     private double tuLastTimeMs = 0.0;
@@ -142,7 +140,7 @@ public class BlueTeleop extends LinearOpMode {
     private double lastTuTarget = 0.0;
     private boolean lastTuTargetInit = false;
 
-    private static final double tuKv = 0.00; // start small
+    private static final double tuKv = 0; // start small
     private boolean flyHoodLock = false;
     private int prevCarxouselIndex = 0;
     private static final Pose2d STARTING_POSE = new Pose2d(0, 0, Math.toRadians(90));
@@ -169,7 +167,7 @@ public class BlueTeleop extends LinearOpMode {
     private static final double ALPHA = 0.8;
 
     private MecanumDrive follower;
-    private static final double TURRET_LIMIT_DEG = 90;
+    private static final double TURRET_LIMIT_DEG = 720;
     private Pose2d pose;
     public static MecanumDrive.Params PARAMS = new MecanumDrive.Params();
     private ElapsedTime runtime = new ElapsedTime();
@@ -182,7 +180,7 @@ public class BlueTeleop extends LinearOpMode {
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
         desiredTag  = null;
-        initAprilTag();
+        //initAprilTag();
         //region OPERATIONAL VARIABLES
         // Mechanism States
         boolean Gogogo = false;
@@ -190,7 +188,7 @@ public class BlueTeleop extends LinearOpMode {
         boolean intakeOn = false;
 
         double intakePower = 0;
-        boolean flyOn = true;
+        boolean flyOn = false;
         boolean turretOn = false;
 
         //Tuning Variables
@@ -262,7 +260,7 @@ public class BlueTeleop extends LinearOpMode {
 
         //endregion
 
-        setManualExposure(4, 200);  // Use low exposure time to reduce motion blur
+        //setManualExposure(4, 200);  // Use low exposure time to reduce motion blur
 
         //INIT TELEMETRY
         telemetry.addData("Camera preview on/off", "3 dots, Camera Stream");
@@ -281,57 +279,57 @@ public class BlueTeleop extends LinearOpMode {
             strafe = -gamepad1.left_stick_x;
             //endregion
 
-            //region CAMERA
             targetFound = false;
             desiredTag  = null;
             follower.updatePoseEstimate();
             follower.localizer.update();
             Pose2d robotPose = follower.localizer.getPose();
 
-            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-            for (AprilTagDetection detection : currentDetections) {
-                // Look to see if we have size info on this tag.
-                if (detection.metadata != null) {
-                    //  Check to see if we want to track towards this tag.
-                    if ((DESIRED_TAG_ID < 0) || (detection.id == DESIRED_TAG_ID)) {
-                        // Yes, we want to use this tag.
-                        desiredTag = detection;
-                        targetFound = true;
-                    } else {
-                        // This tag is in the library, but we do not want to track it right now.
-                        telemetry.addData("Skipping", "Tag ID %d is not desired", detection.id);
-                    }
-                }else {
-                    // This tag is NOT in the library, so we don't have enough information to track to it.
-                    telemetry.addData("Unknown", "Tag ID %d is not in TagLibrary", detection.id);
-                }
-            }
-
-            // DO WHEN CAMERA TRACKING
-            //MAYBE MAKE THIS WHEN facingGoal BOOL IS TRUE?
-            if (targetFound) {
-                adjustDecimation(desiredTag.ftcPose.range);
-                double range = desiredTag.ftcPose.range;
-
-                if(range <= 13) {
-                    hood.setPosition(HOOD_POSITIONS[0]);
-                }
-                else if (range <= 25){
-                    hood.setPosition(HOOD_POSITIONS[1]);
-                }
-                else if (range <= 38){
-                    hood.setPosition(HOOD_POSITIONS[2]);
-                }
-                else{
-                    hood.setPosition(HOOD_POSITIONS[3]);
-                }
-
-                telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
-                telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
-                telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
-                telemetry.addData("Yaw","%3.0f degrees", desiredTag.ftcPose.yaw);
-            }
-            //endregion
+//            //region CAMERA
+//            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+//            for (AprilTagDetection detection : currentDetections) {
+//                // Look to see if we have size info on this tag.
+//                if (detection.metadata != null) {
+//                    //  Check to see if we want to track towards this tag.
+//                    if ((DESIRED_TAG_ID < 0) || (detection.id == DESIRED_TAG_ID)) {
+//                        // Yes, we want to use this tag.
+//                        desiredTag = detection;
+//                        targetFound = true;
+//                    } else {
+//                        // This tag is in the library, but we do not want to track it right now.
+//                        telemetry.addData("Skipping", "Tag ID %d is not desired", detection.id);
+//                    }
+//                }else {
+//                    // This tag is NOT in the library, so we don't have enough information to track to it.
+//                    telemetry.addData("Unknown", "Tag ID %d is not in TagLibrary", detection.id);
+//                }
+//            }
+//
+//            // DO WHEN CAMERA TRACKING
+//            //MAYBE MAKE THIS WHEN facingGoal BOOL IS TRUE?
+//            if (targetFound) {
+//                adjustDecimation(desiredTag.ftcPose.range);
+//                double range = desiredTag.ftcPose.range;
+//
+//                if(range <= 13) {
+//                    hood.setPosition(HOOD_POSITIONS[0]);
+//                }
+//                else if (range <= 25){
+//                    hood.setPosition(HOOD_POSITIONS[1]);
+//                }
+//                else if (range <= 38){
+//                    hood.setPosition(HOOD_POSITIONS[2]);
+//                }
+//                else{
+//                    hood.setPosition(HOOD_POSITIONS[3]);
+//                }
+//
+//                telemetry.addData("Found", "ID %d (%s)", desiredTag.id, desiredTag.metadata.name);
+//                telemetry.addData("Range",  "%5.1f inches", desiredTag.ftcPose.range);
+//                telemetry.addData("Bearing","%3.0f degrees", desiredTag.ftcPose.bearing);
+//                telemetry.addData("Yaw","%3.0f degrees", desiredTag.ftcPose.yaw);
+//            }
+//            //endregion
             if (hasTeleopLocalized) {
                 //dist calc from goal to bot
                 double dx = goalX - robotPose.position.x;
@@ -523,14 +521,14 @@ public class BlueTeleop extends LinearOpMode {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
                     carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
                 }
-                    updateCarouselPID(targetAngle, dtSec);
+                updateCarouselPID(targetAngle, dtSec);
                 if (Gogogo1){
                     spin.setPower(1);
                     transfer.setPower(0.2);
                 }
-                }
+            }
             else{
-                transfer.setPower(-1);
+                transfer.setPower(1);
                 spin.setPower(0.2);
             }
 
@@ -566,20 +564,18 @@ public class BlueTeleop extends LinearOpMode {
                 fly2.setVelocity(0);
             }
 
-            if (gamepad1.squareWasPressed()) {
+            /*if (gamepad1.squareWasPressed()) {
                 tuPos = turretZeroDeg;
                 hasTeleopLocalized = false;
                 localizeTime = runtime.milliseconds();
                 localizationSamples.clear();
-            }
+            }*/
             if (gamepad1.triangleWasPressed()) {
                 trackingOn = !trackingOn;
                 tuIntegral = 0.0;
                 tuLastError = 0.0;
                 lastTuTargetInit = false;
             }
-
-
             //region GOAL TRACKING
             if (trackingOn) {
                 if (!hasTeleopLocalized) {
@@ -669,21 +665,21 @@ public class BlueTeleop extends LinearOpMode {
             //}
             double adjustStepP = 0.0002;
             double adjustStepI = 0.0002;
-            double adjustStepD = 0.00001;
+            double adjustStepD = 0.0001;
             double debounceTime = 175; // milliseconds
 
-            /*if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
-            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+            /*if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
                 if (gamepad1.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-            }
-            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
-                if (gamepad1.square) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
-                if (gamepad1.circle) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
             }*/
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+            }
 
 
 
@@ -735,7 +731,10 @@ public class BlueTeleop extends LinearOpMode {
             telemetry.addData("Flywheel Speed", "%.0f", flySpeed);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
             telemetry.addData("Carousel Target", "%.1f°", targetAngle);
-            telemetry.addData("Turret Angle", "%.1f°", getTurretAngleDeg());
+            telemetry.addData("Turret Angle", "%.1f°", mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
+            telemetry.addData("Tracking?", trackingOn);
+            telemetry.addData("Target Angle: ", tuPos);
+            telemetry.addData("Bot Heading Difference to Turret: ", Math.toDegrees(robotPose.heading.real));
             telemetry.update();
         }
     }
@@ -1047,7 +1046,7 @@ public class BlueTeleop extends LinearOpMode {
         double turretAngleReal = headingToGoal - robotHeading;
 
         //converts to angle servos need to turn to to achieve turret angle
-        double servoAngle = turretZeroDeg + (2 * turretAngleReal);
+        double servoAngle = turretZeroDeg + (((double) 83 /40) * turretAngleReal);
 
         return normalizeDeg180(servoAngle);
     }
@@ -1066,7 +1065,7 @@ public class BlueTeleop extends LinearOpMode {
 
         double d = (error - tuLastError) / Math.max(dt, 1e-6);
 
-        double out = tuKp * error + tuKi * tuIntegral + tuKd * d;
+        double out = -1*tuKp * error + -1*tuKi * tuIntegral + -1*tuKd * d;
 
         // stiction FF
         if (Math.abs(error) > 1.0) out += tuKf * Math.signum(error);
@@ -1089,7 +1088,7 @@ public class BlueTeleop extends LinearOpMode {
 
     }
     private double getTurretAngleDeg() {
-        return normalizeDeg180(mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
+        return mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
     }
     private double applyTurretLimitWithWrap(double desiredDeg) {
         // Always reason in [-180, 180]
