@@ -1177,6 +1177,7 @@ public class RedTeleop extends LinearOpMode {
             gainControl.setGain(gain);
             sleep(20);
         }
+
     }
 
     private void adjustDecimation(double range) {
