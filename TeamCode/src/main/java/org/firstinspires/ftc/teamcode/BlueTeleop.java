@@ -59,20 +59,45 @@ public class BlueTeleop extends LinearOpMode {
 
     private CRServo turret1;
     private CRServo turret2;
-    private final double[] HOOD_POSITIONS = {0.5,0.65,0.8,1};//may have to change
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {31.6, 44.8, 50, 55.1, 60.4, 65.5, 71.1, 76.3, 81.2, 85.8, 90.3, 144};
-    private static final double[] FLY_SPEEDS =          {1400, 1470, 1540, 1610, 1780, 1850, 1920, 2100, 2200, 2300, 2400, 3000};
-    private static final double[] HOOD_ANGLES =         {0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7};
+    private static final double[] ODOM_RANGE_SAMPLES =  {1,1,1,1,1,1,1,1,1,1};
+    private static final double[] FLY_SPEEDS =          {1,1,1,1,1,1,1,1,1,1};
+    private static final double[] HOOD_AT_DISTANCE = {1,1,1,1,1,1,1,1,1,1};
+    private static final double[][] HOOD_ANGLES =
+            {{1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1}};
+    private static final double[][] FLY_MEASURES =
+            {{1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1},
+                    {1,1,1,1,1}};
     //SENSOR
     private AnalogInput spinEncoder;
     private static final int LOCALIZATION_SAMPLE_COUNT = 7;
     private AnalogInput turretEncoder;
     private double smoothedRange = 0;
+    private double smoothedFly = 0;
 
     //endregion
     // PID State
     private double tuIntegral = 0.0;
+    private double flyUp = 0.0;
     private double tuLastError = 0.0;
     private double tuIntegralLimit = 500.0;
 
@@ -86,7 +111,8 @@ public class BlueTeleop extends LinearOpMode {
     private static final double turretZeroDeg = 160;
     private boolean hasTeleopLocalized = true;
 
-    double flyOffset = 0;
+    double flyOffset = -50;
+    int hoodposition = 0;
     boolean prevflyState = false;
     boolean flyAtSpeed = false;
     double flyKp = 11.82;
@@ -107,9 +133,9 @@ public class BlueTeleop extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.0064;
+    private double tuKp = 0.0084;
     private double tuKi = 0;
-    private double tuKd = 0.0008;
+    private double tuKd = 0.0003;
     private double tuKf = 0;
 
     // Carousel PID State
@@ -135,7 +161,7 @@ public class BlueTeleop extends LinearOpMode {
 
     // Carousel Positions (6 presets, every 60 degrees)
     // 57, 177, and 297 face the intake; others face the transfer
-    private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 177.0, 237.0, 297.0, 357.0};
+    private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 137.0, 237.0, 217.0, 357.0, 297.0, 117.0, 17.0, 237.0, 97.0, 357.0, 177.0, 117.0, 257.0, 237.0, 337.0, 0};
     private int carouselIndex = 0;
     private double lastTuTarget = 0.0;
     private boolean lastTuTargetInit = false;
@@ -145,7 +171,7 @@ public class BlueTeleop extends LinearOpMode {
     private int prevCarxouselIndex = 0;
     private static final Pose2d STARTING_POSE = new Pose2d(0, 0, Math.toRadians(90));
     private List<Pose2d> localizationSamples = new ArrayList<>();
-    private double turretTrackingOffset = 0;
+    private double turretTrackingOffset = 93;
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
     private static final double TURRET_DERIVATIVE_GAIN = 0.8;
@@ -167,7 +193,7 @@ public class BlueTeleop extends LinearOpMode {
     private static final double ALPHA = 0.8;
 
     private MecanumDrive follower;
-    private static final double TURRET_LIMIT_DEG = 720;
+    private static final double TURRET_LIMIT_DEG = 270;
     private Pose2d pose;
     public static MecanumDrive.Params PARAMS = new MecanumDrive.Params();
     private ElapsedTime runtime = new ElapsedTime();
@@ -183,12 +209,12 @@ public class BlueTeleop extends LinearOpMode {
         //initAprilTag();
         //region OPERATIONAL VARIABLES
         // Mechanism States
-        boolean Gogogo = false;
-        boolean Gogogo1 = false;
+        boolean TransOn = false;
+        boolean TransOn1 = false;
         boolean intakeOn = false;
 
         double intakePower = 0;
-        boolean flyOn = false;
+        boolean flyOn = true;
         boolean turretOn = false;
 
         //Tuning Variables
@@ -339,9 +365,11 @@ public class BlueTeleop extends LinearOpMode {
                 //smooth range so values rnt erratic
                 if (!isInitialized) {
                     smoothedRange = odomRange;
+                    smoothedFly = fly1.getVelocity();
                     isInitialized = true;
                 } else {
                     smoothedRange = smooth(odomRange, smoothedRange);
+                    smoothedFly = smooth(fly1.getVelocity(), smoothedFly);
                 }
 
                 // increases ki at higher speeds...rework values
@@ -355,32 +383,42 @@ public class BlueTeleop extends LinearOpMode {
 
                 // interpolate between measured values
                 if (!flyHoodLock) {
-                    flySpeed = interpolate(smoothedRange - 134, ODOM_RANGE_SAMPLES, FLY_SPEEDS);
-                    hoodAngle = interpolate(smoothedRange - 134, ODOM_RANGE_SAMPLES, HOOD_ANGLES);
+                    flySpeed = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, FLY_SPEEDS);
+                    hoodAngle = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, HOOD_ANGLES[0]);
                     hoodAngle = Math.max(hoodAngle, -189); //clamp to prevent it going too high
                 }
 
                 telemetry.addData("Odom Range", "%.1f inches", smoothedRange);
             }
+            if (TransOn) {
+                for (int i = 1; i < 10; i++){
+                    HOOD_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, HOOD_ANGLES[0]);
+                }
+                hoodAngle = interpolate(smoothedFly, FLY_SPEEDS, HOOD_AT_DISTANCE);
+            }
             //endregion
             //region FLYWHEEL CONTROL
             // manual speed adjust and reset all adjustmentsss
             if (gamepad2.right_trigger > 0.3 && !(gamepad2.left_trigger > 0.3) && (runtime.milliseconds() - lastTime > 200)) {
-                flyOffset += 10;
+                flyUp += 40;
                 lastTime = runtime.milliseconds();
             }
             if (gamepad2.left_trigger > 0.3 && !(gamepad2.right_trigger > 0.3) && (runtime.milliseconds() - lastTime > 200)) {
-                flyOffset -= 10;
+                flyUp -= 40;
                 lastTime = runtime.milliseconds();
             }
             if (gamepad2.left_trigger > 0.3 && gamepad2.right_trigger > 0.3) {
-                flyOffset = 0;
+                flyUp = 0;
             }
 
             // Flywheel Toggle
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
+            if (gamepad2.dpadUpWasPressed()){
+                hoodposition++;
+            }
+            hood.setPosition(hoodAngle);
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
             double baseF = 12.0 / 2450.0;
@@ -391,8 +429,8 @@ public class BlueTeleop extends LinearOpMode {
 
             // Set Flywheel Velocity
             if (flyOn) {
-                fly1.setVelocity(flySpeed + flyOffset);
-                fly2.setVelocity(flySpeed + flyOffset);
+                fly1.setVelocity(flySpeed + flyOffset+flyUp);
+                fly2.setVelocity(flySpeed + flyOffset+flyUp);
             } else {
                 fly1.setVelocity(0);
                 fly2.setVelocity(0);
@@ -410,7 +448,6 @@ public class BlueTeleop extends LinearOpMode {
                 if (prevflyState != flyAtSpeed) {
                     //TODO TEST IF TS WORKS
                     gamepad1.rumble(300);
-                    gamepad2.rumble(300);
                 }
                 led.setPosition(0.5); // blue
             } else {
@@ -421,7 +458,7 @@ public class BlueTeleop extends LinearOpMode {
             //region INTAKE CONTROL
             if (gamepad1.rightBumperWasPressed()) {
                 intakePower = 1;
-                Gogogo1 = !Gogogo1;
+                TransOn1 = !TransOn1;
                 intakeOn = !intakeOn;
             }
 
@@ -438,21 +475,21 @@ public class BlueTeleop extends LinearOpMode {
             }
             //endregion
 
-            if(gamepad2.dpadDownWasPressed()){
+            /*if(gamepad2.dpadDownWasPressed()){
                 if(hoodAngle > 0.1){
                     hoodAngle -= 0.1;
                 }
-            }
+            }*/
 
-            if(gamepad2.dpadUpWasPressed()){
+            /*if(gamepad2.dpadUpWasPressed()){
                 if(hoodAngle < 1){
                     hoodAngle += 0.1;
                 }
-            }
+            }*/
             if (gamepad2.triangleWasPressed()){
-                Gogogo = !Gogogo;
+                TransOn = !TransOn;
             }
-            hood.setPosition(hoodAngle);
+            //hood.setPosition(hoodAngle);
             //region CAROUSEL CONTROL
 
             //region ADJUST CAROUSEL PID
@@ -511,7 +548,7 @@ public class BlueTeleop extends LinearOpMode {
                 targetAngle = 0;
             }
 */
-            if (!Gogogo){
+            if (!TransOn){
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
                     carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
@@ -522,14 +559,15 @@ public class BlueTeleop extends LinearOpMode {
                     carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
                 }
                 updateCarouselPID(targetAngle, dtSec);
-                if (Gogogo1){
-                    spin.setPower(1);
-                    transfer.setPower(0.2);
+                if (TransOn1){
+                    spin.setPower(-1);
+                    transfer.setPower(-1);
                 }
             }
             else{
                 transfer.setPower(1);
-                spin.setPower(0.2);
+                gamepad2.rumble(300);
+                spin.setPower(-1);
             }
 
 
@@ -576,7 +614,9 @@ public class BlueTeleop extends LinearOpMode {
                 tuLastError = 0.0;
                 lastTuTargetInit = false;
             }
-            //region GOAL TRACKING
+            if (gamepad1.psWasPressed()){
+                follower.localizer.setPose(new Pose2d(72,-72, Math.toRadians(180)));
+            }            //region GOAL TRACKING
             if (trackingOn) {
                 if (!hasTeleopLocalized) {
                     tuPos = turretZeroDeg;
@@ -585,8 +625,8 @@ public class BlueTeleop extends LinearOpMode {
                     tuPos = calcTuTarget(
                             robotPose.position.x,
                             robotPose.position.y,
-                            robotPose.heading.real)
-                            + turretTrackingOffset;
+                            -Math.atan2(robotPose.heading.real, robotPose.heading.imag)
+                                    + Math.toRadians(turretTrackingOffset));
 
                 }
             }
@@ -724,17 +764,20 @@ public class BlueTeleop extends LinearOpMode {
 
             updateTurretPIDWithTargetFF(tuPos, targetVelDegPerSec, dtSec);
             //endregion
-            moveRobot(drive, strafe, turn*0.75);
+            moveRobot(1.5*drive, -strafe, turn*0.75);
 
             // ---------- TELEMETRY ----------
             telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Flywheel Speed", "%.0f", flySpeed);
+            telemetry.addData("x:", robotPose.position.x);
+            telemetry.addData("y", robotPose.position.y);
+            telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed + flyOffset+flyUp);
+            telemetry.addData("CurrentFlyspeed: ", smoothedFly);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
             telemetry.addData("Carousel Target", "%.1f°", targetAngle);
             telemetry.addData("Turret Angle", "%.1f°", mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
             telemetry.addData("Tracking?", trackingOn);
             telemetry.addData("Target Angle: ", tuPos);
-            telemetry.addData("Bot Heading Difference to Turret: ", Math.toDegrees(robotPose.heading.real));
+            telemetry.addData("Bot Heading Difference to Turret: ", normalizeDeg180(Math.toDegrees(Math.atan2(robotPose.heading.real, robotPose.heading.imag))));
             telemetry.update();
         }
     }
@@ -890,7 +933,7 @@ public class BlueTeleop extends LinearOpMode {
 
         // Use Pedro pose for heading
         Pose2d current = follower.localizer.getPose();
-        double robotHeading = current.heading.real;
+        double robotHeading = current.heading.imag;
 
         double tagX = TAG_X_PEDRO;
         double tagY = TAG_Y_PEDRO;
@@ -936,7 +979,7 @@ public class BlueTeleop extends LinearOpMode {
             follower.localizer.setPose(averagedPose);
             telemetry.addData("Localized!", "x=%.1f y=%.1f h=%.1f",
                     averagedPose.position.x, averagedPose.position.y,
-                    Math.toDegrees(averagedPose.heading.real));
+                    Math.toDegrees(averagedPose.heading.imag));
 
             // Save debug values
             lastLocalizeRange = range;
@@ -1012,7 +1055,7 @@ public class BlueTeleop extends LinearOpMode {
         for (Pose2d p : filteredSamples) {
             sumX += p.position.x;
             sumY += p.position.y;
-            sumH += p.heading.real;
+            sumH += p.heading.imag;
         }
 
         int n = filteredSamples.size();
@@ -1088,14 +1131,14 @@ public class BlueTeleop extends LinearOpMode {
 
     }
     private double getTurretAngleDeg() {
-        return mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
+        return normalizeDeg180(mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
     }
     private double applyTurretLimitWithWrap(double desiredDeg) {
         // Always reason in [-180, 180]
         desiredDeg = normalizeDeg180(desiredDeg);
 
         // Where the turret actually is right now (also [-180, 180])
-        double currentDeg = getTurretAngleDeg();
+        double currentDeg = getTurretAngleDeg()+turretTrackingOffset;
 
         // Shortest signed rotation from current to desired (e.g. +20, -30, etc.)
         double errorToDesired = normalizeDeg180(desiredDeg - currentDeg);
