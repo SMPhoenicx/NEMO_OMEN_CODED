@@ -63,6 +63,7 @@ public class BlueTeleop extends LinearOpMode {
     private static final double[] ODOM_RANGE_SAMPLES =  {1,1,1,1,1,1,1,1,1,1};
     private static final double[] FLY_SPEEDS =          {1,1,1,1,1,1,1,1,1,1};
     private static final double[] HOOD_AT_DISTANCE = {1,1,1,1,1,1,1,1,1,1};
+    private static final double[] FLY_AT_DISTANCE = {1,1,1,1,1,1,1,1,1,1};
     private static final double[][] HOOD_ANGLES =
             {{1,1,1,1,1},
                     {1,1,1,1,1},
@@ -393,8 +394,9 @@ public class BlueTeleop extends LinearOpMode {
             if (TransOn) {
                 for (int i = 1; i < 10; i++){
                     HOOD_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, HOOD_ANGLES[0]);
+                    FLY_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, FLY_MEASURES[0]);
                 }
-                hoodAngle = interpolate(smoothedFly, FLY_SPEEDS, HOOD_AT_DISTANCE);
+                hoodAngle = interpolate(smoothedFly, FLY_AT_DISTANCE, HOOD_AT_DISTANCE);
             }
             //endregion
             //region FLYWHEEL CONTROL
@@ -1191,3 +1193,4 @@ public class BlueTeleop extends LinearOpMode {
     }
     //endregion
 }
+
