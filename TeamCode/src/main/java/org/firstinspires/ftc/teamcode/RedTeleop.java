@@ -391,13 +391,11 @@ public class RedTeleop extends LinearOpMode {
 
                 telemetry.addData("Odom Range", "%.1f inches", smoothedRange);
             }
-            if (TransOn) {
-                for (int i = 1; i < 10; i++){
-                    HOOD_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, HOOD_ANGLES[0]);
-                    FLY_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, FLY_MEASURES[0]);
-                }
-                hoodAngle = interpolate(smoothedFly, FLY_AT_DISTANCE, HOOD_AT_DISTANCE);
+            for (int i = 1; i < 10; i++){
+                HOOD_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, HOOD_ANGLES[0]);
+                FLY_AT_DISTANCE[i] = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, FLY_MEASURES[0]);
             }
+            hoodAngle = interpolate(smoothedFly, FLY_AT_DISTANCE, HOOD_AT_DISTANCE);
             //endregion
             //region FLYWHEEL CONTROL
             // manual speed adjust and reset all adjustmentsss
@@ -440,8 +438,8 @@ public class RedTeleop extends LinearOpMode {
 
             // check if flywheel is at speed
             double flyTotal = flySpeed + flyOffset;
-            flyAtSpeed = (flyTotal - fly1.getVelocity() < 50) && (flyTotal - fly1.getVelocity() > -50) &&
-                    (flyTotal - fly2.getVelocity() < 50) && (flyTotal - fly2.getVelocity() > -50);
+            flyAtSpeed = (flyTotal - fly1.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly1.getVelocity() > FLY_AT_DISTANCE[0]) &&
+                    (flyTotal - fly2.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly2.getVelocity() > FLY_AT_DISTANCE[0]);
 
             // ...and update led
             if (!flyOn) {
