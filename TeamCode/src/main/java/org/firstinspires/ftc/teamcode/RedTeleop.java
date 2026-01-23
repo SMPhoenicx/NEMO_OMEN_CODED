@@ -610,6 +610,7 @@ public class RedTeleop extends LinearOpMode {
                 trackingOn = !trackingOn;
                 tuIntegral = 0.0;
                 tuLastError = 0.0;
+
                 lastTuTargetInit = false;
             }
             if (gamepad1.psWasPressed()){

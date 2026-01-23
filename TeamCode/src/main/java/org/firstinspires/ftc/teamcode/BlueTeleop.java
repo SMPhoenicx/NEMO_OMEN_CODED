@@ -33,6 +33,7 @@ public class BlueTeleop extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
+
     final double TURN_GAIN = 0.02;
     final double MAX_AUTO_TURN = 0.4;
     //region HARDWARE DECLARATIONS
