@@ -162,7 +162,7 @@ public class BlueTeleop extends LinearOpMode {
 
     // Carousel Positions (6 presets, every 60 degrees)
     // 57, 177, and 297 face the intake; others face the transfer
-    private final double[] CAROUSEL_POSITIONS = {57.0, 117.0, 137.0, 237.0, 217.0, 357.0, 297.0, 117.0, 17.0, 237.0, 97.0, 357.0, 177.0, 117.0, 257.0, 237.0, 337.0, 0};
+    private double CAROUSEL_POSITION = 0;
     private int carouselIndex = 0;
     private double lastTuTarget = 0.0;
     private boolean lastTuTargetInit = false;
@@ -539,7 +539,7 @@ public class BlueTeleop extends LinearOpMode {
             //endregion
 */
             // always run PID towards the current selected preset while opMode active
-            double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
+            double targetAngle = CAROUSEL_POSITION%360;
 
             //endregion
 /*
@@ -553,12 +553,10 @@ public class BlueTeleop extends LinearOpMode {
             if (!TransOn){
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
-                    carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
-                    carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
+                    CAROUSEL_POSITION -= 53.3333333;
                 }
                 if (gamepad2.dpadRightWasPressed()) {
-                    carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
-                    carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
+                    CAROUSEL_POSITION -= 53.3333333;
                 }
                 updateCarouselPID(targetAngle, dtSec);
                 if (TransOn1){
@@ -614,11 +612,10 @@ public class BlueTeleop extends LinearOpMode {
                 trackingOn = !trackingOn;
                 tuIntegral = 0.0;
                 tuLastError = 0.0;
-
                 lastTuTargetInit = false;
             }
             if (gamepad1.psWasPressed()){
-                follower.localizer.setPose(new Pose2d(72,-72, Math.toRadians(180)));
+                follower.localizer.setPose(new Pose2d(72,-72, Math.toRadians(0)));
             }            //region GOAL TRACKING
             if (trackingOn) {
                 if (!hasTeleopLocalized) {
@@ -1178,6 +1175,7 @@ public class BlueTeleop extends LinearOpMode {
             gainControl.setGain(gain);
             sleep(20);
         }
+
     }
 
     private void adjustDecimation(double range) {
@@ -1194,4 +1192,3 @@ public class BlueTeleop extends LinearOpMode {
     }
     //endregion
 }
-
