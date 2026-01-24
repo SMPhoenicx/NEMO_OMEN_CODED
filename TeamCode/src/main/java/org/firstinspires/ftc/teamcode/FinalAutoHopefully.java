@@ -128,6 +128,9 @@ public class FinalAutoHopefully extends LinearOpMode {
     private static final double TURRET_DERIVATIVE_GAIN = 0.9;
 
     //VISION STUFF
+    private static final int TAG_ID_GPP = 21;
+    private static final int TAG_ID_PGP = 22;
+    private static final int TAG_ID_PPG = 23;
     private static final int DESIRED_TAG_ID = 20;
     private VisionPortal visionPortal;
     private AprilTagProcessor aprilTag;

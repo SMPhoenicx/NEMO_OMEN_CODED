@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import static androidx.core.math.MathUtils.clamp;
 
+import android.graphics.Color;
+import android.net.TrafficStats;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.util.Size;
 
@@ -15,18 +17,24 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 
 import com.acmerobotics.roadrunner.ParallelAction;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.teamcode.GlobalOffsets;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import com.acmerobotics.roadrunner.Pose2d;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -78,10 +86,14 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
     private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.5, 0.65, 0.8, 1};//may have to change
     //SENSOR
+    private NormalizedColorSensor color1 = null;
     private AnalogInput spinEncoder;
     private AnalogInput turretEncoder;
 
     //endregion
+
+    private double dAlpha = 0.86;
+    private double dFiltered = 0.0;
 
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
@@ -100,6 +112,8 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
     private double carouselErrorDeg = 0.0;
     private double carouselOutput = 0.0;
     private boolean carouselAtTarget = false;
+    private double lastColorRead = 0;
+
 
     private double tuKp = 0;
     private double tuKi = 0;
@@ -116,11 +130,16 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
     private final double positionToleranceDeg = 2.0;
     private final double outputDeadband = 0.03;
 
+    // Ball Storage Tracking
+    private char[] savedBalls = {'g', 'p', 'p'};
+    private boolean[] presentBalls = {true, true, true};
+
     // Carousel Positions (6 presets, every 60 degrees)
     // 57, 177, and 297 face the intake; others face the transfer
     private final double[] CAROUSEL_POSITIONS = {57.0, 177.0, 297.0};
     private int carouselIndex = 0;
     private int prevCarouselIndex = 0;
+    private int greenPos = 0;
 
     private double turretTrackingOffset = 0;
     private double lastTurretEncoder = 0;
@@ -204,6 +223,8 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
         turret2 = hardwareMap.get(CRServo.class, "turret2");
         turretEncoder = hardwareMap.get(AnalogInput.class, "turretEncoder");
 
+        color1 = hardwareMap.get(NormalizedColorSensor.class, "color1");
+
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
@@ -221,12 +242,30 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
 
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
         //endregion
 
         telemetry.addData("Camera preview on/off", "3 dots, Camera Stream");
         telemetry.addData(">", "Touch START to start OpMode");
         telemetry.update();
 
+        int patternTag = StateVars.patternTagID;
+        if (patternTag == 21) {
+            greenPos = 0;
+        } else if (patternTag == 22) {
+            greenPos = 1;
+        } else if (patternTag == 23) {
+            greenPos = 2;
+        }
+/*
+        TrajectoryActionBuilder getMotif = drive.actionBuilder(SHOOT_POSE)
+                ;
+
+        Action GetMotif = telemetryPacket -> {
+            patternTag
+        };
+*/
         TrajectoryActionBuilder shortWait = drive.actionBuilder(SHOOT_POSE)
                 .waitSeconds(1);
 
@@ -430,7 +469,6 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
             follower.localizer.update();
             StateVars.lastPose = follower.localizer.getPose();
             telemetry.addData("Carousel Index", carouselIndex);
-            telemetry.addData("Spin Position", getSpinPosition());
             telemetry.update();
             double nowMs = runtime.milliseconds();
             dtSec = (nowMs - lastLoopMs) / 1000.0;
@@ -445,26 +483,102 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
 
 
         }
+
+        //region COLOR SENSOR
+        char detectedColor = getRealColor();
+
+        if (carouselAtTarget && runtime.milliseconds() - lastColorRead > 40) {
+            int slot = indexToSlot(carouselIndex);
+            if (slot != -1) {
+                savedBalls[slot] = detectedColor;  // 'n', 'g', or 'p'
+                lastColorRead = runtime.milliseconds();
+            }
+        }
+        //endregion
         //endregion
 
 
     }
 
-    // Helper function to get spin encoder position in degrees
-    private double getSpinPosition() {
-        double v = 0.0;
-        if (spinEncoder != null) {
-            try {
-                v = spinEncoder.getVoltage();
-            } catch (Exception e) {
-                v = 0.0;
-            }
+
+
+    //region HELPER METHODS
+    private char getRealColor(){
+        char c1 = getDetectedColor1(color1);
+
+        if(c1=='p'){
+            return 'p';
         }
-        // Original formula preserved
-        return v * (360.0 / 3.3); // adjust based on your calibration
+        if(c1=='g'){
+            return 'g';
+        }
+        return 'n';
     }
 
-    void updateCarouselPID(double targetAngle, double dt) {
+    private char getDetectedColor1(NormalizedColorSensor sensor){
+        double dist = ((DistanceSensor) sensor).getDistance(DistanceUnit.CM);
+        if (Double.isNaN(dist) || dist > GlobalOffsets.colorSensorDist1) {
+            return 'n';
+        }
+
+        NormalizedRGBA colors = sensor.getNormalizedColors();
+        if (colors.alpha == 0) return 'n';
+        float nRed = colors.red/colors.alpha;
+        float nGreen = colors.green/colors.alpha;
+        float nBlue = colors.blue/colors.alpha;
+
+        if(nBlue>nGreen&&nGreen>nRed){//blue green red
+            return 'p';
+        }
+        else if(nGreen>nBlue&&nBlue>nRed&&nGreen>nRed*2){//green blue red
+            return 'g';
+        }
+        return 'n';
+    }
+
+
+
+    public void spinClock() {
+        prevCarouselIndex = carouselIndex;
+        carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
+        carouselIndex = (carouselIndex - 2 + CAROUSEL_POSITIONS.length) % CAROUSEL_POSITIONS.length;
+    }
+    public void spinCounterClock() {
+        prevCarouselIndex = carouselIndex;
+        carouselIndex += carouselIndex % 2 != 0 ? 1 : 0;
+        carouselIndex = (carouselIndex + 2) % CAROUSEL_POSITIONS.length;
+    }
+
+    private int indexToSlot(int index) {
+        switch (index) {
+            case 0: return 0;
+            case 2: return 1;
+            case 4: return 2;
+            default: return -1;
+        }
+    }
+
+    private int slotToIndex(int slot) {
+        switch (slot) {
+            case 0: return 0;
+            case 1: return 2;
+            case 2: return 4;
+            default: return -1;
+        }
+    }
+    private boolean isBallPresent() {
+        double dist1 = ((DistanceSensor) color1).getDistance(DistanceUnit.CM);
+
+        NormalizedRGBA colors1 = color1.getNormalizedColors();
+
+        boolean s1Detected = !Double.isNaN(dist1) && dist1 < GlobalOffsets.colorSensorDist1;
+
+        if (colors1.alpha == 0) {
+            s1Detected = false;
+        }
+        return s1Detected;
+    }
+    private void updateCarouselPID(double targetAngle, double dt) {
         double ccwOffset = -6.0;
         // read angles 0..360
         double angle = mapVoltageToAngle360(spinEncoder.getVoltage(), 0.01, 3.29);
@@ -482,12 +596,19 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
         // compute shortest signed error [-180,180]
         double error = -angleError(compensatedTarget, angle);
 
+        //store for outside use
+        carouselAngleDeg = angle;
+        carouselErrorDeg = error;
+
         // integral with anti-windup
         integral += error * dt;
         integral = clamp(integral, -integralLimit, integralLimit);
 
         // derivative
-        double d = (error - lastError) / Math.max(dt, 1e-6);
+        double dRaw = (error - lastError) / Math.max(dt, 1e-6);
+        dFiltered = dAlpha * dFiltered + (1.0 - dAlpha) * dRaw;
+        double d = dFiltered;
+
 
         // PIDF output (interpreted as servo power)
         double out = pidKp * error + pidKi * integral + pidKd * d;
@@ -505,6 +626,10 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
             integral *= 0.2;
         }
 
+        //store for outside use
+        carouselOutput = out;
+        carouselAtTarget = (Math.abs(error) <= positionToleranceDeg+10);
+
         // apply powers (flip one if your servo is mirrored - change sign if needed)
         spin.setPower(out);
 
@@ -518,6 +643,8 @@ public class FinalAutoHopefullyPt4 extends LinearOpMode {
         telemetry.addData("Target", CAROUSEL_POSITIONS[carouselIndex]);
         telemetry.addData("Error", angleError(CAROUSEL_POSITIONS[carouselIndex], angle));
         telemetry.addData("PID Out", out);
+        telemetry.addData("Green Position", greenPos);
+        telemetry.addData("Color", savedBalls);
 
 
 
