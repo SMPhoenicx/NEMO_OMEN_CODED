@@ -113,6 +113,7 @@ public class RedTeleop extends LinearOpMode {
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = -50;
+    double carouseloffset = -4;
     int hoodposition = 0;
     boolean prevflyState = false;
     boolean flyAtSpeed = false;
@@ -125,7 +126,7 @@ public class RedTeleop extends LinearOpMode {
     // Carousel PIDF Constants
     private double pidKp = 0.0160;
     private double pidKi = 0.0018;
-    private double pidKd = 0.0004;
+    private double pidKd = 0.0008;
     private double pidKf = 0.0;
 
     // Carousel PID State
@@ -203,6 +204,7 @@ public class RedTeleop extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
         boolean targetFound = false;
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
@@ -298,7 +300,7 @@ public class RedTeleop extends LinearOpMode {
 
         follower = new MecanumDrive(hardwareMap, STARTING_POSE);
         follower.localizer.setPose(StateVars.lastPose);
-
+        carouseloffset = 53%mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
         while (opModeIsActive()) {
 
             //region DRIVE
@@ -437,10 +439,10 @@ public class RedTeleop extends LinearOpMode {
             }
 
             // check if flywheel is at speed
-            double flyTotal = flySpeed + flyOffset;
-            flyAtSpeed = (flyTotal - fly1.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly1.getVelocity() > FLY_AT_DISTANCE[0]) &&
-                    (flyTotal - fly2.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly2.getVelocity() > FLY_AT_DISTANCE[0]);
-
+            double flyTotal = flySpeed + flyOffset+flyUp;
+//            flyAtSpeed = (flyTotal - fly1.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly1.getVelocity() > FLY_AT_DISTANCE[0]) &&
+//                    (flyTotal - fly2.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly2.getVelocity() > FLY_AT_DISTANCE[0]);
+flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() > -20;
             // ...and update led
             if (!flyOn) {
                 led.setPosition(1); // white
@@ -503,24 +505,28 @@ public class RedTeleop extends LinearOpMode {
 
             // ENCODING FOR SERVOS
             double volt = spinAnalog.getVoltage();
-/*
+
             // === PIDF tuning via Gamepad2 ===
-            double adjustStepP = 0.0002;
-            double adjustStepI = 0.0002;
-            double adjustStepD = 0.00001;
+            double adjustStepP = 0.2;
+            double adjustStepI = 0.2;
+            double adjustStepD = 0.1;
             double debounceTime = 175; // milliseconds
 
             if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
-                if (gamepad1.dpad_right) { pidKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_left) { pidKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_right) { flyKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_left) { flyKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
             if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
-                if (gamepad1.dpad_up) { pidKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_down) { pidKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_up) { flyKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_down) { flyKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
             }
             if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
-                if (gamepad2.dpad_up) { pidKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_down) { pidKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_up) { flyKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { flyKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.left_bumper) { carouseloffset += 1; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.right_bumper) { carouseloffset -= 1; lastDAdjustTime = runtime.milliseconds(); }
             }
 
 
@@ -531,13 +537,14 @@ public class RedTeleop extends LinearOpMode {
 
             // Display PID constants on telemetry
             telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
-            telemetry.addData("kP", "%.4f", pidKp);
-            telemetry.addData("kI", "%.4f", pidKi);
-            telemetry.addData("kD", "%.4f", pidKd);
+            telemetry.addData("kP", "%.4f", flyKp);
+            telemetry.addData("kI", "%.4f", flyKi);
+            telemetry.addData("kD", "%.4f", flyKd);
+            telemetry.addData("carouseloffset", carouseloffset);
             //endregion
-*/
+
             // always run PID towards the current selected preset while opMode active
-            double targetAngle = CAROUSEL_POSITION%360;
+            double targetAngle = (CAROUSEL_POSITION%360)+carouseloffset;
 
             //endregion
 /*
@@ -549,6 +556,7 @@ public class RedTeleop extends LinearOpMode {
             }
 */
             if (!TransOn){
+                gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
                     CAROUSEL_POSITION -= 53.3333333;
@@ -558,15 +566,19 @@ public class RedTeleop extends LinearOpMode {
                 }
                 updateCarouselPID(targetAngle, dtSec);
                 if (TransOn1){
+//                    carouseloffset-=53;
                     spin.setPower(-1);
                     transfer.setPower(-1);
                 }
             }
             else{
                 transfer.setPower(1);
-                gamepad2.rumble(300);
-                spin.setPower(-1);
+                spin.setPower(-0.2);
+                gamepad2.setLedColor(0,1,0,200);
+//                carouseloffset-=53;
+
             }
+            carouseloffset = carouseloffset%360;
 
 
             //endregion
@@ -592,8 +604,8 @@ public class RedTeleop extends LinearOpMode {
 
             // Set Flywheel Velocity
             if (flyOn) {
-                fly1.setVelocity(flySpeed);
-                fly2.setVelocity(flySpeed);
+                fly1.setVelocity(flySpeed + flyOffset+flyUp);
+                fly2.setVelocity(flySpeed + flyOffset+flyUp);
             }
             else {
                 fly1.setVelocity(0);
@@ -702,10 +714,10 @@ public class RedTeleop extends LinearOpMode {
             turn  = -gamepad1.right_stick_x;
             //lastHeadingError = 0;                 pidTimer.reset();
             //}
-            double adjustStepP = 0.0002;
-            double adjustStepI = 0.0002;
-            double adjustStepD = 0.0001;
-            double debounceTime = 175; // milliseconds
+//            double adjustStepP = 0.0002;
+//            double adjustStepI = 0.0002;
+//            double adjustStepD = 0.0001;
+//            double debounceTime = 175; // milliseconds
 
             if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
