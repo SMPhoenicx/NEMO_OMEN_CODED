@@ -8,6 +8,9 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -49,6 +52,7 @@ public class RedTeleop extends LinearOpMode {
     private DcMotor intake = null;
 
     private DcMotor transfer = null;
+    private NormalizedColorSensor color = null;
 
     // Servos
     private Servo vertTrans;  // Vertical actuator
@@ -59,6 +63,7 @@ public class RedTeleop extends LinearOpMode {
 
     private CRServo turret1;
     private CRServo turret2;
+    private char[] colors = {'n', 'n', 'n'};
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
     private static final double[] ODOM_RANGE_SAMPLES =  {1,1,1,1,1,1,1,1,1,1};
     private static final double[] FLY_SPEEDS =          {1,1,1,1,1,1,1,1,1,1};
@@ -99,6 +104,7 @@ public class RedTeleop extends LinearOpMode {
     // PID State
     private double tuIntegral = 0.0;
     private double flyUp = 0.0;
+    private double currentIndex = 0;
     private double tuLastError = 0.0;
     private double tuIntegralLimit = 500.0;
 
@@ -124,6 +130,8 @@ public class RedTeleop extends LinearOpMode {
     double flyKpOffset = 0.0;
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
+    private double timer = 0;
+    private char currentshot = 'n';
     private double pidKp = 0.0160;
     private double pidKi = 0.0018;
     private double pidKd = 0.0008;
@@ -261,6 +269,7 @@ public class RedTeleop extends LinearOpMode {
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         led = hardwareMap.get(Servo.class, "led");
+        color = hardwareMap.get(NormalizedColorSensor.class, "Color 1");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turret1 = hardwareMap.get(CRServo.class, "turret1");
         turret2 = hardwareMap.get(CRServo.class, "turret2");
@@ -300,7 +309,6 @@ public class RedTeleop extends LinearOpMode {
 
         follower = new MecanumDrive(hardwareMap, STARTING_POSE);
         follower.localizer.setPose(StateVars.lastPose);
-        carouseloffset = 53%mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
         while (opModeIsActive()) {
 
             //region DRIVE
@@ -490,6 +498,12 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
             }*/
             if (gamepad2.triangleWasPressed()){
                 TransOn = !TransOn;
+                if (TransOn){
+                    CAROUSEL_POSITION += 90;
+                }
+                else{
+                    CAROUSEL_POSITION -= 90;
+                }
             }
             //hood.setPosition(hoodAngle);
             //region CAROUSEL CONTROL
@@ -547,35 +561,65 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
             double targetAngle = (CAROUSEL_POSITION%360)+carouseloffset;
 
             //endregion
-/*
+
             if (gamepad2.squareWasPressed()) {
-                targetAngle = 90;
+                currentshot = 'p';
             }
-            else{
-                targetAngle = 0;
+            if (gamepad2.circleWasPressed()){
+                currentshot = 'g';
             }
-*/
+
             if (!TransOn){
                 gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
-                    CAROUSEL_POSITION -= 53.3333333;
+                    currentIndex -= 1;
+                    CAROUSEL_POSITION -= 60;
                 }
                 if (gamepad2.dpadRightWasPressed()) {
-                    CAROUSEL_POSITION -= 53.3333333;
+                    CAROUSEL_POSITION += 60;
+                    currentIndex += 1;
                 }
+                if (currentshot != 'n' && findIndex(colors, currentshot) != -1){
+                    TransOn = !TransOn;
+                    CAROUSEL_POSITION -= 90;
+                    CAROUSEL_POSITION += findIndex(colors, currentshot)*60;
+                }
+
+
                 updateCarouselPID(targetAngle, dtSec);
                 if (TransOn1){
-//                    carouseloffset-=53;
-                    spin.setPower(-1);
-                    transfer.setPower(-1);
+                  if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2){
+                      CAROUSEL_POSITION += 60;
+                      currentIndex += 1;
+                      colors[0] = getDetectedColor();
+                  }
+                  transfer.setPower(-1);
                 }
+                timer = runtime.milliseconds();
             }
             else{
                 transfer.setPower(1);
-                spin.setPower(-0.2);
                 gamepad2.setLedColor(0,1,0,200);
-//                carouseloffset-=53;
+                gamepad2.rumble(300);
+                if (currentshot == 'n') {
+                    if (runtime.milliseconds() - timer > 600) {
+                        CAROUSEL_POSITION += 60;
+                        currentIndex += 1;
+                        colors[0] = 'n';
+                        timer = runtime.milliseconds();
+                    }
+                }
+                else{
+                    if (runtime.milliseconds() - timer > 600) {
+                        CAROUSEL_POSITION -= findIndex(colors, currentshot)*60;
+                        colors[findIndex(colors, currentshot)] = 'n';
+                        TransOn = !TransOn;
+                        currentshot = 'n';
+                        CAROUSEL_POSITION += 90;
+                    }
+                }
+                updateCarouselPID(targetAngle, dtSec);
 
             }
             carouseloffset = carouseloffset%360;
@@ -772,6 +816,8 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                 targetVelDegPerSec = 0.0;
                 lastTuTarget = safeTurretTargetDeg;
             }
+            colors = addX(3, colors, colors[0]);
+            colors = remove(colors, 0);
 
             updateTurretPIDWithTargetFF(tuPos, targetVelDegPerSec, dtSec);
             //endregion
@@ -792,8 +838,65 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
             telemetry.update();
         }
     }
+    public static int findIndex(char a[], int t)
+    {
+        if (a == null)
+            return -1;
 
+        int len = a.length;
+        int i = 0;
+
+        // traverse in the array
+        while (i < len) {
+
+            // if the i-th element is t
+            // then return the index
+            if (a[i] == t) {
+                return i;
+            }
+            else {
+                i = i + 1;
+            }
+        }
+
+        return -1;
+    }
     //region HELPER METHODS
+    public static char[] addX(int n, char arr[], char x)
+    {
+
+        char newarr[] = new char[n + 1];
+
+        // insert the elements from
+        // the old array into the new array
+        // insert all elements till n
+        // then insert x at n+1
+        for (int i = 0; i < n; i++)
+            newarr[i] = arr[i];
+
+        newarr[n] = x;
+
+        return newarr;
+    }
+    public static char[] remove(char[] arr, int in) {
+
+        if (arr == null || in < 0 || in >= arr.length) {
+            return arr;
+        }
+
+        char[] arr2 = new char[arr.length - 1];
+
+        // Copy the elements except the index
+        // from original array to the other array
+        for (int i = 0, k = 0; i < arr.length; i++) {
+            if (i == in)
+                continue;
+
+            arr2[k++] = arr[i];
+        }
+
+        return arr2;
+    }
     public void moveRobot(double x, double y, double yaw) {
         // Calculate wheel powers.
         double frontLeftPower    =  x - y - yaw;
@@ -1108,6 +1211,27 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
         deg = (deg + 180) % 360;
         if (deg < 0) deg += 360;
         return deg - 180;
+    }
+    private char getDetectedColor(){
+        double dist = ((DistanceSensor) color).getDistance(DistanceUnit.CM);
+        telemetry.addData("Distance X", dist);
+        if (Double.isNaN(dist) || dist > GlobalOffsets.colorSensorDist1) {
+            return 'n';
+        }
+
+        NormalizedRGBA colors = color.getNormalizedColors();
+        if (colors.alpha == 0) return 'n';
+        float nRed = colors.red/colors.alpha;
+        float nGreen = colors.green/colors.alpha;
+        float nBlue = colors.blue/colors.alpha;
+
+        if(nBlue>nGreen&&nGreen>nRed){//blue green red
+            return 'p';
+        }
+        else if(nGreen>nBlue&&nBlue>nRed&&nGreen>nRed*2){//green blue red
+            return 'g';
+        }
+        return 'n';
     }
     private void updateTurretPIDWithTargetFF(double targetAngle, double targetVelDegPerSec, double dt) {
         double angle = getTurretAngleDeg();
