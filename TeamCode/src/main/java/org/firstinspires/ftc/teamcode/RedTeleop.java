@@ -115,7 +115,7 @@ public class RedTeleop extends LinearOpMode {
     // Turret Position
     private double tuPos = 0;
 
-    private static final double turretZeroDeg = 160;
+    private static final double turretZeroDeg = 100;
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = -50;
@@ -123,14 +123,15 @@ public class RedTeleop extends LinearOpMode {
     int hoodposition = 0;
     boolean prevflyState = false;
     boolean flyAtSpeed = false;
-    double flyKp = 11.82;
+    double flyKp = 13.82;
     double flyKi = 0.53;
-    double flyKd = 6.1;
+    double flyKd = 10.1;
     double flyKiOffset = 0.0;
     double flyKpOffset = 0.0;
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
     private double timer = 0;
+    private double timer1 = 0;
     private char currentshot = 'n';
     private double pidKp = 0.0160;
     private double pidKi = 0.0018;
@@ -269,7 +270,7 @@ public class RedTeleop extends LinearOpMode {
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         led = hardwareMap.get(Servo.class, "led");
-        color = hardwareMap.get(NormalizedColorSensor.class, "Color 1");
+        color = hardwareMap.get(NormalizedColorSensor.class, "color");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turret1 = hardwareMap.get(CRServo.class, "turret1");
         turret2 = hardwareMap.get(CRServo.class, "turret2");
@@ -450,7 +451,7 @@ public class RedTeleop extends LinearOpMode {
             double flyTotal = flySpeed + flyOffset+flyUp;
 //            flyAtSpeed = (flyTotal - fly1.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly1.getVelocity() > FLY_AT_DISTANCE[0]) &&
 //                    (flyTotal - fly2.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly2.getVelocity() > FLY_AT_DISTANCE[0]);
-flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() > -20;
+flyAtSpeed = flyTotal - fly1.getVelocity()<30 && flyTotal - fly1.getVelocity() > -30;
             // ...and update led
             if (!flyOn) {
                 led.setPosition(1); // white
@@ -496,13 +497,14 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                     hoodAngle += 0.1;
                 }
             }*/
-            if (gamepad2.triangleWasPressed()){
-                TransOn = !TransOn;
-                if (TransOn){
-                    CAROUSEL_POSITION += 90;
-                }
-                else{
-                    CAROUSEL_POSITION -= 90;
+            if (currentshot == 'n') {
+                if (gamepad2.triangleWasPressed()) {
+                    TransOn = !TransOn;
+                    if (TransOn) {
+                        CAROUSEL_POSITION += 90;
+                    } else {
+                        CAROUSEL_POSITION -= 90;
+                    }
                 }
             }
             //hood.setPosition(hoodAngle);
@@ -521,8 +523,8 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
             double volt = spinAnalog.getVoltage();
 
             // === PIDF tuning via Gamepad2 ===
-            double adjustStepP = 0.2;
-            double adjustStepI = 0.2;
+            double adjustStepP = 0.1;
+            double adjustStepI = 0.200;
             double adjustStepD = 0.1;
             double debounceTime = 175; // milliseconds
 
@@ -538,10 +540,26 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                 if (gamepad2.dpad_up) { flyKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                 if (gamepad2.dpad_down) { flyKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
             }
-            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+            /*if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
                 if (gamepad2.left_bumper) { carouseloffset += 1; lastDAdjustTime = runtime.milliseconds(); }
                 if (gamepad2.right_bumper) { carouseloffset -= 1; lastDAdjustTime = runtime.milliseconds(); }
             }
+            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                if (gamepad1.dpad_right) { pidKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_left) { pidKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+                if (gamepad1.dpad_up) { pidKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_down) { pidKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.dpad_up) { pidKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { pidKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.left_bumper) { carouseloffset += 1; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.right_bumper) { carouseloffset -= 1; lastDAdjustTime = runtime.milliseconds(); }
+            }*/
 
 
             // Safety clamp
@@ -554,30 +572,36 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
             telemetry.addData("kP", "%.4f", flyKp);
             telemetry.addData("kI", "%.4f", flyKi);
             telemetry.addData("kD", "%.4f", flyKd);
+
             telemetry.addData("carouseloffset", carouseloffset);
             //endregion
 
             // always run PID towards the current selected preset while opMode active
-            double targetAngle = (CAROUSEL_POSITION%360)+carouseloffset;
+
 
             //endregion
 
-            if (gamepad2.squareWasPressed()) {
-                currentshot = 'p';
-            }
-            if (gamepad2.circleWasPressed()){
-                currentshot = 'g';
-            }
+
 
             if (!TransOn){
+                if (gamepad2.leftBumperWasPressed()) {
+                    currentshot = 'p';
+                }
+                if (gamepad2.rightBumperWasPressed()){
+                    currentshot = 'g';
+                }
                 gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
                     currentIndex -= 1;
+                    colors = addX(0, colors, colors[0]);
+                    colors = remove(colors, 3);
                     CAROUSEL_POSITION -= 60;
                 }
                 if (gamepad2.dpadRightWasPressed()) {
                     CAROUSEL_POSITION += 60;
+                    colors = addX(3, colors, colors[0]);
+                    colors = remove(colors, 0);
                     currentIndex += 1;
                 }
                 if (currentshot != 'n' && findIndex(colors, currentshot) != -1){
@@ -585,32 +609,35 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                     CAROUSEL_POSITION -= 90;
                     CAROUSEL_POSITION += findIndex(colors, currentshot)*60;
                 }
-
-
-                updateCarouselPID(targetAngle, dtSec);
                 if (TransOn1){
-                  if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2){
-                      CAROUSEL_POSITION += 60;
+                  if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2&&runtime.milliseconds()-timer1>400&&findIndex(colors, 'n') != -1){
+                      CAROUSEL_POSITION -= 60;
                       currentIndex += 1;
                       colors[0] = getDetectedColor();
+                      colors = addX(3, colors, colors[0]);
+                      colors = remove(colors, 0);
+                      timer1 = runtime.milliseconds();
                   }
                   transfer.setPower(-1);
                 }
                 timer = runtime.milliseconds();
             }
             else{
-                transfer.setPower(1);
+
                 gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
                 if (currentshot == 'n') {
                     if (runtime.milliseconds() - timer > 600) {
+                        transfer.setPower(1);
                         CAROUSEL_POSITION += 60;
+                        colors = addX(3, colors, colors[0]);
+                        colors = remove(colors, 0);
                         currentIndex += 1;
                         colors[0] = 'n';
                         timer = runtime.milliseconds();
                     }
                 }
-                else{
+                /*else{
                     if (runtime.milliseconds() - timer > 600) {
                         CAROUSEL_POSITION -= findIndex(colors, currentshot)*60;
                         colors[findIndex(colors, currentshot)] = 'n';
@@ -618,11 +645,12 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                         currentshot = 'n';
                         CAROUSEL_POSITION += 90;
                     }
-                }
-                updateCarouselPID(targetAngle, dtSec);
+                }*/
+
 
             }
-            carouseloffset = carouseloffset%360;
+            double targetAngle = (CAROUSEL_POSITION)+carouseloffset;
+            carouseloffset = carouseloffset%180;
 
 
             //endregion
@@ -690,87 +718,20 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                 //zeros position
                 tuPos = normalizeDeg180(turretZeroDeg);
             }
-
-            /*if (facingGoal) {
-                turn  = -gamepad1.right_stick_x;
-                if (targetFound) {
-                    lastKnownBearing = desiredTag.ftcPose.bearing;
-                    lastKnownRange = desiredTag.ftcPose.range;
-                    lastDetectionTime = System.currentTimeMillis();
-
-                    double headingError = desiredTag.ftcPose.bearing;
-
-                    double deltaTime = pidTimer.seconds();
-                    double derivative = (headingError - lastHeadingError) / deltaTime;
-                    pidTimer.reset();
-
-//                    if (Math.abs(headingError) < 2.0) {
-  //                      turn = 0;
- //                   } else {
-//                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-//                    }
-
-                    lastHeadingError = headingError;
-
-                    double turretAngle = lastKnownBearing;
-                    if(turretAngle <-0.0055){
-                        turretAngle = 0.5 - turretAngle;
-                    }else if(turretAngle > 0.0055){
-                        turretAngle = 0.5 + turretAngle;
-                    }
-                    turn  = -gamepad1.right_stick_x;
-                    updateTurretPID(turretAngle, dtSec);
-                    telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
-                }
-                else {
-                    //TRYING TO PREVENT A LOT OF TRACKING LOSS
-                    long timeSinceLost = System.currentTimeMillis() - lastDetectionTime;
-
-                    if (timeSinceLost < PREDICTION_TIMEOUT) {
-                        // Continue tracking last known bearing
-                        double headingError = lastKnownBearing;
-
-                        double deltaTime = pidTimer.seconds();
-                        double derivative = (headingError - lastHeadingError) / deltaTime;
-                        pidTimer.reset();
-
-//                        if (Math.abs(headingError) < 2.0) {
-  //                          turn = 0;
-    //                    } else {
-      //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
-        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-          //              }
-
-                        lastHeadingError = headingError;
-
-                        telemetry.addData("Tracking", "PREDICTED (lost %dms ago)", timeSinceLost);
-                    } else {
-                        turn  = -gamepad1.right_stick_x;
-                        lastHeadingError = 0;
-                        pidTimer.reset();
-                        telemetry.addData("Tracking", "LOST");
-                    }
-
-
-                }
-            }*/
-            //else{
             turn  = -gamepad1.right_stick_x;
-            //lastHeadingError = 0;                 pidTimer.reset();
-            //}
 //            double adjustStepP = 0.0002;
 //            double adjustStepI = 0.0002;
 //            double adjustStepD = 0.0001;
 //            double debounceTime = 175; // milliseconds
 
-            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+            /*if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
-            /*if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
                 if (gamepad1.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-            }*/
+            }
             if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
                 if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
@@ -788,7 +749,7 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
             telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
             telemetry.addData("kP", "%.4f", tuKp);
             telemetry.addData("kI", "%.4f", tuKi);
-            telemetry.addData("kD", "%.4f", tuKd);
+            telemetry.addData("kD", "%.4f", tuKd);*/
             //endregion
             //region TURRET CONTROl
             if (!trackingOn) {
@@ -816,15 +777,19 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<20 && flyTotal - fly1.getVelocity() >
                 targetVelDegPerSec = 0.0;
                 lastTuTarget = safeTurretTargetDeg;
             }
-            colors = addX(3, colors, colors[0]);
-            colors = remove(colors, 0);
 
+            updateCarouselPID(targetAngle, dtSec);
             updateTurretPIDWithTargetFF(tuPos, targetVelDegPerSec, dtSec);
             //endregion
-            moveRobot(1.5*drive, -strafe, turn*0.75);
+            moveRobot(1.5*drive, strafe, -turn);
+            moveRobot(1.5*drive, strafe, -turn);
 
             // ---------- TELEMETRY ----------
             telemetry.addData("Status", "Run Time: " + runtime.toString());
+            telemetry.addData("currentshot: ", currentshot);
+            telemetry.addData("colors: ", colors[0]);
+            telemetry.addData("colors: ", colors[1]);
+            telemetry.addData("colors: ", colors[2]);
             telemetry.addData("x:", robotPose.position.x);
             telemetry.addData("y", robotPose.position.y);
             telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed + flyOffset+flyUp);
