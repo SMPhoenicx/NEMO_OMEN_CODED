@@ -642,7 +642,7 @@ flyAtSpeed = flyTotal - fly1.getVelocity()<30 && flyTotal - fly1.getVelocity() >
                         CAROUSEL_POSITION -= findIndex(colors, currentshot)*60;
                         colors[findIndex(colors, currentshot)] = 'n';
                         TransOn = !TransOn;
-                        currentshot = 'n';
+                        currentshot = 'n';111
                         CAROUSEL_POSITION += 90;
                     }
                 }*/
