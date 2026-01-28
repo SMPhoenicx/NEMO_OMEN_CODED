@@ -1,13 +1,23 @@
 package org.firstinspires.ftc.teamcode;
 
+import static java.lang.Math.round;
+
+import android.graphics.Color;
 import android.util.Size;
 
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -17,15 +27,19 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.Exposur
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import com.acmerobotics.roadrunner.Pose2d;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @TeleOp(name="BlueTeleop", group="Linear OpMode")
@@ -33,7 +47,6 @@ public class BlueTeleop extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     double TURN_P = 0.06;
     double TURN_D = 0.002;
-
     final double TURN_GAIN = 0.02;
     final double MAX_AUTO_TURN = 0.4;
     //region HARDWARE DECLARATIONS
@@ -50,6 +63,7 @@ public class BlueTeleop extends LinearOpMode {
     private DcMotor intake = null;
 
     private DcMotor transfer = null;
+    private NormalizedColorSensor color = null;
 
     // Servos
     private Servo vertTrans;  // Vertical actuator
@@ -60,6 +74,7 @@ public class BlueTeleop extends LinearOpMode {
 
     private CRServo turret1;
     private CRServo turret2;
+    private char[] colors = {'n', 'n', 'n'};
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
     private static final double[] ODOM_RANGE_SAMPLES =  {1,1,1,1,1,1,1,1,1,1};
     private static final double[] FLY_SPEEDS =          {1,1,1,1,1,1,1,1,1,1};
@@ -100,6 +115,7 @@ public class BlueTeleop extends LinearOpMode {
     // PID State
     private double tuIntegral = 0.0;
     private double flyUp = 0.0;
+    private double currentIndex = 0;
     private double tuLastError = 0.0;
     private double tuIntegralLimit = 500.0;
 
@@ -110,23 +126,27 @@ public class BlueTeleop extends LinearOpMode {
     // Turret Position
     private double tuPos = 0;
 
-    private static final double turretZeroDeg = 160;
+    private static final double turretZeroDeg = 100;
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = -50;
+    double carouseloffset = -4;
     int hoodposition = 0;
     boolean prevflyState = false;
     boolean flyAtSpeed = false;
-    double flyKp = 11.82;
+    double flyKp = 13.82;
     double flyKi = 0.53;
-    double flyKd = 6.1;
+    double flyKd = 10.1;
     double flyKiOffset = 0.0;
     double flyKpOffset = 0.0;
     //region CAROUSEL SYSTEM
     // Carousel PIDF Constants
+    private double timer = 0;
+    private double timer1 = 0;
+    private char currentshot = 'n';
     private double pidKp = 0.0160;
     private double pidKi = 0.0018;
-    private double pidKd = 0.0004;
+    private double pidKd = 0.0008;
     private double pidKf = 0.0;
 
     // Carousel PID State
@@ -171,8 +191,8 @@ public class BlueTeleop extends LinearOpMode {
     private static final double tuKv = 0; // start small
     private boolean flyHoodLock = false;
     private int prevCarxouselIndex = 0;
-    private static final Pose2d STARTING_POSE = new Pose2d(0, 0, Math.toRadians(90));
-    private List<Pose2d> localizationSamples = new ArrayList<>();
+    private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
+    private List<Pose> localizationSamples = new ArrayList<>();
     private double turretTrackingOffset = 93;
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
@@ -194,16 +214,16 @@ public class BlueTeleop extends LinearOpMode {
     private static final double TAG_Y_PEDRO = 127.905;
     private static final double ALPHA = 0.8;
 
-    private MecanumDrive follower;
+    private Follower follower;
     private static final double TURRET_LIMIT_DEG = 270;
-    private Pose2d pose;
-    public static MecanumDrive.Params PARAMS = new MecanumDrive.Params();
+    private Pose pose;
     private ElapsedTime runtime = new ElapsedTime();
     private static final double goalX = -72;
     private static final double goalY = 72;
 
     @Override
     public void runOpMode() {
+
         boolean targetFound = false;
         boolean localizeApril = true;
         double aprilLocalizationTimeout=0;
@@ -260,6 +280,7 @@ public class BlueTeleop extends LinearOpMode {
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
         led = hardwareMap.get(Servo.class, "led");
+        color = hardwareMap.get(NormalizedColorSensor.class, "color");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turret1 = hardwareMap.get(CRServo.class, "turret1");
         turret2 = hardwareMap.get(CRServo.class, "turret2");
@@ -297,9 +318,8 @@ public class BlueTeleop extends LinearOpMode {
         waitForStart();
         runtime.reset();
 
-        follower = new MecanumDrive(hardwareMap, STARTING_POSE);
-        follower.localizer.setPose(StateVars.lastPose);
-
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(StateVars.lastPose);
         while (opModeIsActive()) {
 
             //region DRIVE
@@ -309,9 +329,8 @@ public class BlueTeleop extends LinearOpMode {
 
             targetFound = false;
             desiredTag  = null;
-            follower.updatePoseEstimate();
-            follower.localizer.update();
-            Pose2d robotPose = follower.localizer.getPose();
+            follower.update();
+            Pose robotPose = follower.getPose();
 
 //            //region CAMERA
 //            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
@@ -360,8 +379,8 @@ public class BlueTeleop extends LinearOpMode {
 //            //endregion
             if (hasTeleopLocalized) {
                 //dist calc from goal to bot
-                double dx = goalX - robotPose.position.x;
-                double dy = goalY - robotPose.position.y;
+                double dx = goalX - robotPose.getX();
+                double dy = goalY - robotPose.getY();
                 double odomRange = Math.hypot(dx, dy);
 
                 //smooth range so values rnt erratic
@@ -438,10 +457,10 @@ public class BlueTeleop extends LinearOpMode {
             }
 
             // check if flywheel is at speed
-            double flyTotal = flySpeed + flyOffset;
-            flyAtSpeed = (flyTotal - fly1.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly1.getVelocity() > FLY_AT_DISTANCE[0]) &&
-                    (flyTotal - fly2.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly2.getVelocity() > FLY_AT_DISTANCE[0]);
-
+            double flyTotal = flySpeed + flyOffset+flyUp;
+//            flyAtSpeed = (flyTotal - fly1.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly1.getVelocity() > FLY_AT_DISTANCE[0]) &&
+//                    (flyTotal - fly2.getVelocity() < FLY_AT_DISTANCE[9]) && (flyTotal - fly2.getVelocity() > FLY_AT_DISTANCE[0]);
+            flyAtSpeed = flyTotal - fly1.getVelocity()<30 && flyTotal - fly1.getVelocity() > -30;
             // ...and update led
             if (!flyOn) {
                 led.setPosition(1); // white
@@ -487,8 +506,15 @@ public class BlueTeleop extends LinearOpMode {
                     hoodAngle += 0.1;
                 }
             }*/
-            if (gamepad2.triangleWasPressed()){
-                TransOn = !TransOn;
+            if (currentshot == 'n') {
+                if (gamepad2.triangleWasPressed()) {
+                    TransOn = !TransOn;
+                    if (TransOn) {
+                        CAROUSEL_POSITION += 90;
+                    } else {
+                        CAROUSEL_POSITION -= 90;
+                    }
+                }
             }
             //hood.setPosition(hoodAngle);
             //region CAROUSEL CONTROL
@@ -504,25 +530,45 @@ public class BlueTeleop extends LinearOpMode {
 
             // ENCODING FOR SERVOS
             double volt = spinAnalog.getVoltage();
-/*
+
             // === PIDF tuning via Gamepad2 ===
-            double adjustStepP = 0.0002;
-            double adjustStepI = 0.0002;
-            double adjustStepD = 0.00001;
+            double adjustStepP = 0.1;
+            double adjustStepI = 0.200;
+            double adjustStepD = 0.1;
             double debounceTime = 175; // milliseconds
 
             if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+                if (gamepad1.dpad_right) { flyKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_left) { flyKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+                if (gamepad1.dpad_up) { flyKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_down) { flyKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.dpad_up) { flyKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.dpad_down) { flyKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
+            }
+            /*if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.left_bumper) { carouseloffset += 1; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.right_bumper) { carouseloffset -= 1; lastDAdjustTime = runtime.milliseconds(); }
+            }
+            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { pidKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_left) { pidKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_left) { pidKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
             if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
                 if (gamepad1.dpad_up) { pidKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-                if (gamepad2.dpad_down) { pidKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
+                if (gamepad1.dpad_down) { pidKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
             }
             if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
                 if (gamepad2.dpad_up) { pidKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                 if (gamepad2.dpad_down) { pidKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
             }
+            if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
+                if (gamepad2.left_bumper) { carouseloffset += 1; lastDAdjustTime = runtime.milliseconds(); }
+                if (gamepad2.right_bumper) { carouseloffset -= 1; lastDAdjustTime = runtime.milliseconds(); }
+            }*/
 
 
             // Safety clamp
@@ -532,42 +578,88 @@ public class BlueTeleop extends LinearOpMode {
 
             // Display PID constants on telemetry
             telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
-            telemetry.addData("kP", "%.4f", pidKp);
-            telemetry.addData("kI", "%.4f", pidKi);
-            telemetry.addData("kD", "%.4f", pidKd);
+            telemetry.addData("kP", "%.4f", flyKp);
+            telemetry.addData("kI", "%.4f", flyKi);
+            telemetry.addData("kD", "%.4f", flyKd);
+
+            telemetry.addData("carouseloffset", carouseloffset);
             //endregion
-*/
+
             // always run PID towards the current selected preset while opMode active
-            double targetAngle = CAROUSEL_POSITION%360;
+
 
             //endregion
-/*
-            if (gamepad2.squareWasPressed()) {
-                targetAngle = 90;
-            }
-            else{
-                targetAngle = 0;
-            }
-*/
+
+
+
             if (!TransOn){
+                if (gamepad2.leftBumperWasPressed()) {
+                    currentshot = 'p';
+                }
+                if (gamepad2.rightBumperWasPressed()){
+                    currentshot = 'g';
+                }
+                gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
-                    CAROUSEL_POSITION -= 53.3333333;
+                    currentIndex -= 1;
+                    colors = addX(0, colors, colors[0]);
+                    colors = remove(colors, 3);
+                    CAROUSEL_POSITION -= 60;
                 }
                 if (gamepad2.dpadRightWasPressed()) {
-                    CAROUSEL_POSITION -= 53.3333333;
+                    CAROUSEL_POSITION += 60;
+                    colors = addX(3, colors, colors[0]);
+                    colors = remove(colors, 0);
+                    currentIndex += 1;
                 }
-                updateCarouselPID(targetAngle, dtSec);
+                if (currentshot != 'n' && findIndex(colors, currentshot) != -1){
+                    TransOn = !TransOn;
+                    CAROUSEL_POSITION -= 90;
+                    CAROUSEL_POSITION += findIndex(colors, currentshot)*60;
+                }
                 if (TransOn1){
-                    spin.setPower(-1);
+                    if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2&&runtime.milliseconds()-timer1>400&&findIndex(colors, 'n') != -1){
+                        CAROUSEL_POSITION -= 60;
+                        currentIndex += 1;
+                        colors[0] = getDetectedColor();
+                        colors = addX(3, colors, colors[0]);
+                        colors = remove(colors, 0);
+                        timer1 = runtime.milliseconds();
+                    }
                     transfer.setPower(-1);
                 }
+                timer = runtime.milliseconds();
             }
             else{
-                transfer.setPower(1);
+
+                gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
-                spin.setPower(-1);
+                if (currentshot == 'n') {
+                    if (runtime.milliseconds() - timer > 600) {
+                        transfer.setPower(1);
+                        CAROUSEL_POSITION += 60;
+                        colors = addX(3, colors, colors[0]);
+                        colors = remove(colors, 0);
+                        currentIndex += 1;
+                        colors[0] = 'n';
+                        timer = runtime.milliseconds();
+                    }
+                }
+                /*else{
+                    if (runtime.milliseconds() - timer > 600) {
+                        CAROUSEL_POSITION -= findIndex(colors, currentshot)*60;
+                        colors[findIndex(colors, currentshot)] = 'n';
+                        TransOn = !TransOn;11
+                        currentshot = 'n';111
+                        CAROUSEL_POSITION += 90;
+                    }
+                }*/
+
+
             }
+            double targetAngle = (CAROUSEL_POSITION)+carouseloffset;
+            carouseloffset = carouseloffset%180;
 
 
             //endregion
@@ -593,8 +685,8 @@ public class BlueTeleop extends LinearOpMode {
 
             // Set Flywheel Velocity
             if (flyOn) {
-                fly1.setVelocity(flySpeed);
-                fly2.setVelocity(flySpeed);
+                fly1.setVelocity(flySpeed + flyOffset+flyUp);
+                fly2.setVelocity(flySpeed + flyOffset+flyUp);
             }
             else {
                 fly1.setVelocity(0);
@@ -611,10 +703,11 @@ public class BlueTeleop extends LinearOpMode {
                 trackingOn = !trackingOn;
                 tuIntegral = 0.0;
                 tuLastError = 0.0;
+
                 lastTuTargetInit = false;
             }
             if (gamepad1.psWasPressed()){
-                follower.localizer.setPose(new Pose2d(72,-72, Math.toRadians(0)));
+                follower.setPose(new Pose(72,-72, Math.toRadians(180)));
             }            //region GOAL TRACKING
             if (trackingOn) {
                 if (!hasTeleopLocalized) {
@@ -622,9 +715,9 @@ public class BlueTeleop extends LinearOpMode {
                 }
                 else {
                     tuPos = calcTuTarget(
-                            robotPose.position.x,
-                            robotPose.position.y,
-                            -Math.atan2(robotPose.heading.real, robotPose.heading.imag)
+                            robotPose.getX(),
+                            robotPose.getY(),
+                            robotPose.getHeading()
                                     + Math.toRadians(turretTrackingOffset));
 
                 }
@@ -634,87 +727,20 @@ public class BlueTeleop extends LinearOpMode {
                 //zeros position
                 tuPos = normalizeDeg180(turretZeroDeg);
             }
-
-            /*if (facingGoal) {
-                turn  = -gamepad1.right_stick_x;
-                if (targetFound) {
-                    lastKnownBearing = desiredTag.ftcPose.bearing;
-                    lastKnownRange = desiredTag.ftcPose.range;
-                    lastDetectionTime = System.currentTimeMillis();
-
-                    double headingError = desiredTag.ftcPose.bearing;
-
-                    double deltaTime = pidTimer.seconds();
-                    double derivative = (headingError - lastHeadingError) / deltaTime;
-                    pidTimer.reset();
-
-//                    if (Math.abs(headingError) < 2.0) {
-  //                      turn = 0;
- //                   } else {
-//                        turn = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-//                    }
-
-                    lastHeadingError = headingError;
-
-                    double turretAngle = lastKnownBearing;
-                    if(turretAngle <-0.0055){
-                        turretAngle = 0.5 - turretAngle;
-                    }else if(turretAngle > 0.0055){
-                        turretAngle = 0.5 + turretAngle;
-                    }
-                    turn  = -gamepad1.right_stick_x;
-                    updateTurretPID(turretAngle, dtSec);
-                    telemetry.addData("Tracking", "LIVE (err: %.1f°, deriv: %.2f)", headingError, derivative);
-                }
-                else {
-                    //TRYING TO PREVENT A LOT OF TRACKING LOSS
-                    long timeSinceLost = System.currentTimeMillis() - lastDetectionTime;
-
-                    if (timeSinceLost < PREDICTION_TIMEOUT) {
-                        // Continue tracking last known bearing
-                        double headingError = lastKnownBearing;
-
-                        double deltaTime = pidTimer.seconds();
-                        double derivative = (headingError - lastHeadingError) / deltaTime;
-                        pidTimer.reset();
-
-//                        if (Math.abs(headingError) < 2.0) {
-  //                          turn = 0;
-    //                    } else {
-      //                      turn = (TURN_P * headingError) + (TURN_D * derivative);
-        //                    turn = Range.clip(turn * -1, -MAX_AUTO_TURN, MAX_AUTO_TURN);
-          //              }
-
-                        lastHeadingError = headingError;
-
-                        telemetry.addData("Tracking", "PREDICTED (lost %dms ago)", timeSinceLost);
-                    } else {
-                        turn  = -gamepad1.right_stick_x;
-                        lastHeadingError = 0;
-                        pidTimer.reset();
-                        telemetry.addData("Tracking", "LOST");
-                    }
-
-
-                }
-            }*/
-            //else{
             turn  = -gamepad1.right_stick_x;
-            //lastHeadingError = 0;                 pidTimer.reset();
-            //}
-            double adjustStepP = 0.0002;
-            double adjustStepI = 0.0002;
-            double adjustStepD = 0.0001;
-            double debounceTime = 175; // milliseconds
+//            double adjustStepP = 0.0002;
+//            double adjustStepI = 0.0002;
+//            double adjustStepD = 0.0001;
+//            double debounceTime = 175; // milliseconds
 
-            if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
+            /*if (runtime.milliseconds() - lastPAdjustTime > debounceTime) {
                 if (gamepad1.dpad_right) { tuKp += adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_left) { tuKp -= adjustStepP; lastPAdjustTime = runtime.milliseconds(); }
             }
-            /*if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
+            if (runtime.milliseconds() - lastIAdjustTime > debounceTime) {
                 if (gamepad1.dpad_up) { tuKi += adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_down) { tuKi -= adjustStepI; lastIAdjustTime = runtime.milliseconds(); }
-            }*/
+            }
             if (runtime.milliseconds() - lastDAdjustTime > debounceTime) {
                 if (gamepad1.dpad_up) { tuKd += adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
                 if (gamepad1.dpad_down) { tuKd -= adjustStepD; lastDAdjustTime = runtime.milliseconds(); }
@@ -732,7 +758,7 @@ public class BlueTeleop extends LinearOpMode {
             telemetry.addData("PID Tuning", "Press A/B=P+,P- | X/Y=I+,I- | Dpad Up/Down=D+,D-");
             telemetry.addData("kP", "%.4f", tuKp);
             telemetry.addData("kI", "%.4f", tuKi);
-            telemetry.addData("kD", "%.4f", tuKd);
+            telemetry.addData("kD", "%.4f", tuKd);*/
             //endregion
             //region TURRET CONTROl
             if (!trackingOn) {
@@ -761,14 +787,20 @@ public class BlueTeleop extends LinearOpMode {
                 lastTuTarget = safeTurretTargetDeg;
             }
 
+            updateCarouselPID(targetAngle, dtSec);
             updateTurretPIDWithTargetFF(tuPos, targetVelDegPerSec, dtSec);
             //endregion
-            moveRobot(1.5*drive, -strafe, turn*0.75);
+            moveRobot(1.5*drive, strafe, -turn);
+            moveRobot(1.5*drive, strafe, -turn);
 
             // ---------- TELEMETRY ----------
             telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("x:", robotPose.position.x);
-            telemetry.addData("y", robotPose.position.y);
+            telemetry.addData("currentshot: ", currentshot);
+            telemetry.addData("colors: ", colors[0]);
+            telemetry.addData("colors: ", colors[1]);
+            telemetry.addData("colors: ", colors[2]);
+            telemetry.addData("x:", robotPose.getX());
+            telemetry.addData("y", robotPose.getY());
             telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed + flyOffset+flyUp);
             telemetry.addData("CurrentFlyspeed: ", smoothedFly);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
@@ -776,12 +808,69 @@ public class BlueTeleop extends LinearOpMode {
             telemetry.addData("Turret Angle", "%.1f°", mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
             telemetry.addData("Tracking?", trackingOn);
             telemetry.addData("Target Angle: ", tuPos);
-            telemetry.addData("Bot Heading Difference to Turret: ", normalizeDeg180(Math.toDegrees(Math.atan2(robotPose.heading.real, robotPose.heading.imag))));
+            telemetry.addData("Bot Heading Difference to Turret: ", normalizeDeg180(Math.toDegrees(robotPose.getHeading())));
             telemetry.update();
         }
     }
+    public static int findIndex(char a[], int t)
+    {
+        if (a == null)
+            return -1;
 
+        int len = a.length;
+        int i = 0;
+
+        // traverse in the array
+        while (i < len) {
+
+            // if the i-th element is t
+            // then return the index
+            if (a[i] == t) {
+                return i;
+            }
+            else {
+                i = i + 1;
+            }
+        }
+
+        return -1;
+    }
     //region HELPER METHODS
+    public static char[] addX(int n, char arr[], char x)
+    {
+
+        char newarr[] = new char[n + 1];
+
+        // insert the elements from
+        // the old array into the new array
+        // insert all elements till n
+        // then insert x at n+1
+        for (int i = 0; i < n; i++)
+            newarr[i] = arr[i];
+
+        newarr[n] = x;
+
+        return newarr;
+    }
+    public static char[] remove(char[] arr, int in) {
+
+        if (arr == null || in < 0 || in >= arr.length) {
+            return arr;
+        }
+
+        char[] arr2 = new char[arr.length - 1];
+
+        // Copy the elements except the index
+        // from original array to the other array
+        for (int i = 0, k = 0; i < arr.length; i++) {
+            if (i == in)
+                continue;
+
+            arr2[k++] = arr[i];
+        }
+
+        return arr2;
+    }
     public void moveRobot(double x, double y, double yaw) {
         // Calculate wheel powers.
         double frontLeftPower    =  x - y - yaw;
@@ -931,8 +1020,8 @@ public class BlueTeleop extends LinearOpMode {
         if (tag == null) return false;
 
         // Use Pedro pose for heading
-        Pose2d current = follower.localizer.getPose();
-        double robotHeading = current.heading.imag;
+        Pose current = follower.getPose();
+        double robotHeading = current.getHeading();
 
         double tagX = TAG_X_PEDRO;
         double tagY = TAG_Y_PEDRO;
@@ -959,7 +1048,7 @@ public class BlueTeleop extends LinearOpMode {
         double robotX = cameraX - fieldOffsetX;
         double robotY = cameraY - fieldOffsetY;
 
-        Pose2d candidatePose = new Pose2d(robotX, robotY, robotHeading);
+        Pose candidatePose = new Pose(robotX, robotY, robotHeading);
 
         // Add to samples list
         localizationSamples.add(candidatePose);
@@ -972,13 +1061,13 @@ public class BlueTeleop extends LinearOpMode {
         }
 
         // We have enough samples - filter outliers and average
-        Pose2d averagedPose = filterAndAveragePoses(localizationSamples);
+        Pose averagedPose = filterAndAveragePoses(localizationSamples);
 
         if (averagedPose != null) {
-            follower.localizer.setPose(averagedPose);
+            follower.setPose(averagedPose);
             telemetry.addData("Localized!", "x=%.1f y=%.1f h=%.1f",
-                    averagedPose.position.x, averagedPose.position.y,
-                    Math.toDegrees(averagedPose.heading.imag));
+                    averagedPose.getX(), averagedPose.getY(),
+                    Math.toDegrees(averagedPose.getHeading()));
 
             // Save debug values
             lastLocalizeRange = range;
@@ -987,8 +1076,8 @@ public class BlueTeleop extends LinearOpMode {
             lastLocalizeRobotHeading = Math.toDegrees(robotHeading);
             lastLocalizeCalcX = robotX;
             lastLocalizeCalcY = robotY;
-            lastLocalizeFinalX = averagedPose.position.x;
-            lastLocalizeFinalY = averagedPose.position.y;
+            lastLocalizeFinalX = averagedPose.getX();
+            lastLocalizeFinalY = averagedPose.getY();
             lastLocalizeTagX = tagX;
             lastLocalizeTagY = tagY;
             // Clear samples for next time
@@ -1015,16 +1104,16 @@ public class BlueTeleop extends LinearOpMode {
         }
         return yValues[yValues.length - 1]; // fallback
     }
-    private Pose2d filterAndAveragePoses(List<Pose2d> samples) {
+    private Pose filterAndAveragePoses(List<Pose> samples) {
         if (samples.isEmpty()) return null;
 
         // Calculate median position to find center
         List<Double> xVals = new ArrayList<>();
         List<Double> yVals = new ArrayList<>();
 
-        for (Pose2d p : samples) {
-            xVals.add(p.position.x);
-            yVals.add(p.position.y);
+        for (Pose p : samples) {
+            xVals.add(p.getX());
+            yVals.add(p.getY());
         }
 
         Collections.sort(xVals);
@@ -1034,9 +1123,9 @@ public class BlueTeleop extends LinearOpMode {
         double medianY = yVals.get(yVals.size() / 2);
 
         // Filter out outliers (anything too far from median)
-        List<Pose2d> filteredSamples = new ArrayList<>();
-        for (Pose2d p : samples) {
-            double distFromMedian = Math.hypot(p.position.x - medianX, p.position.y - medianY);
+        List<Pose> filteredSamples = new ArrayList<>();
+        for (Pose p : samples) {
+            double distFromMedian = Math.hypot(p.getX() - medianX, p.getY() - medianY);
             if (distFromMedian <= MAX_SAMPLE_DEVIATION) {
                 filteredSamples.add(p);
             } else {
@@ -1051,14 +1140,14 @@ public class BlueTeleop extends LinearOpMode {
 
         // Average the filtered samples
         double sumX = 0, sumY = 0, sumH = 0;
-        for (Pose2d p : filteredSamples) {
-            sumX += p.position.x;
-            sumY += p.position.y;
-            sumH += p.heading.imag;
+        for (Pose p : filteredSamples) {
+            sumX += p.getX();
+            sumY += p.getY();
+            sumH += p.getHeading();
         }
 
         int n = filteredSamples.size();
-        return new Pose2d(sumX / n, sumY / n, sumH / n);
+        return new Pose(sumX / n, sumY / n, sumH / n);
     }
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
@@ -1096,6 +1185,27 @@ public class BlueTeleop extends LinearOpMode {
         deg = (deg + 180) % 360;
         if (deg < 0) deg += 360;
         return deg - 180;
+    }
+    private char getDetectedColor(){
+        double dist = ((DistanceSensor) color).getDistance(DistanceUnit.CM);
+        telemetry.addData("Distance X", dist);
+        if (Double.isNaN(dist) || dist > GlobalOffsets.colorSensorDist1) {
+            return 'n';
+        }
+
+        NormalizedRGBA colors = color.getNormalizedColors();
+        if (colors.alpha == 0) return 'n';
+        float nRed = colors.red/colors.alpha;
+        float nGreen = colors.green/colors.alpha;
+        float nBlue = colors.blue/colors.alpha;
+
+        if(nBlue>nGreen&&nGreen>nRed){//blue green red
+            return 'p';
+        }
+        else if(nGreen>nBlue&&nBlue>nRed&&nGreen>nRed*2){//green blue red
+            return 'g';
+        }
+        return 'n';
     }
     private void updateTurretPIDWithTargetFF(double targetAngle, double targetVelDegPerSec, double dt) {
         double angle = getTurretAngleDeg();

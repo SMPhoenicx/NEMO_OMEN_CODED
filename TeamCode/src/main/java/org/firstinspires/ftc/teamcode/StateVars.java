@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode;
-import com.acmerobotics.roadrunner.Pose2d;
+import com.pedropathing.geometry.Pose;
 
 public class StateVars {
-    public static Pose2d lastPose = new Pose2d(23, 53, Math.toRadians(50));
+    public static Pose lastPose = new Pose(23, 53, Math.toRadians(50));
     public static int patternTagID = 21;
 }
