@@ -1,9 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.teamcode.GlobalOffsets.spindexerOffset;
 import static java.lang.Math.round;
 
 import android.graphics.Color;
 import android.util.Size;
+
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -24,8 +28,10 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.Exposur
 import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -178,7 +184,7 @@ public class RedTeleop extends LinearOpMode {
 
     // Carousel Positions (6 presets, every 60 degrees)
     // 57, 177, and 297 face the intake; others face the transfer
-    private double CAROUSEL_POSITION = 0;
+    private double CAROUSEL_POSITION = spindexerOffset;
     private int carouselIndex = 0;
     private double lastTuTarget = 0.0;
     private boolean lastTuTargetInit = false;
@@ -186,8 +192,8 @@ public class RedTeleop extends LinearOpMode {
     private static final double tuKv = 0; // start small
     private boolean flyHoodLock = false;
     private int prevCarxouselIndex = 0;
-    private static final Pose2d STARTING_POSE = new Pose2d(0, 0, Math.toRadians(90));
-    private List<Pose2d> localizationSamples = new ArrayList<>();
+    private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
+    private List<Pose> localizationSamples = new ArrayList<>();
     private double turretTrackingOffset = 93;
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
@@ -209,10 +215,9 @@ public class RedTeleop extends LinearOpMode {
     private static final double TAG_Y_PEDRO = 127.905;
     private static final double ALPHA = 0.8;
 
-    private MecanumDrive follower;
+    private Follower follower;
     private static final double TURRET_LIMIT_DEG = 270;
-    private Pose2d pose;
-    public static MecanumDrive.Params PARAMS = new MecanumDrive.Params();
+    private Pose pose;
     private ElapsedTime runtime = new ElapsedTime();
     private static final double goalX = 72;
     private static final double goalY = 72;
@@ -314,8 +319,8 @@ public class RedTeleop extends LinearOpMode {
         waitForStart();
         runtime.reset();
 
-        follower = new MecanumDrive(hardwareMap, STARTING_POSE);
-        follower.localizer.setPose(StateVars.lastPose);
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(StateVars.lastPose);
         while (opModeIsActive()) {
 
             //region DRIVE
@@ -325,9 +330,8 @@ public class RedTeleop extends LinearOpMode {
 
             targetFound = false;
             desiredTag  = null;
-            follower.updatePoseEstimate();
-            follower.localizer.update();
-            Pose2d robotPose = follower.localizer.getPose();
+            follower.update();
+            Pose robotPose = follower.getPose();
 
 //            //region CAMERA
 //            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
@@ -376,8 +380,8 @@ public class RedTeleop extends LinearOpMode {
 //            //endregion
             if (hasTeleopLocalized) {
                 //dist calc from goal to bot
-                double dx = goalX - robotPose.position.x;
-                double dy = goalY - robotPose.position.y;
+                double dx = goalX - robotPose.getX();
+                double dy = goalY - robotPose.getY();
                 double odomRange = Math.hypot(dx, dy);
 
                 //smooth range so values rnt erratic
@@ -704,7 +708,7 @@ public class RedTeleop extends LinearOpMode {
                 lastTuTargetInit = false;
             }
             if (gamepad1.psWasPressed()){
-                follower.localizer.setPose(new Pose2d(-72,-72, Math.toRadians(180)));
+                follower.setPose(new Pose(-72,-72, Math.toRadians(180)));
             }            //region GOAL TRACKING
             if (trackingOn) {
                 if (!hasTeleopLocalized) {
@@ -712,9 +716,9 @@ public class RedTeleop extends LinearOpMode {
                 }
                 else {
                     tuPos = calcTuTarget(
-                            robotPose.position.x,
-                            robotPose.position.y,
-                            -Math.atan2(robotPose.heading.real, robotPose.heading.imag)
+                            robotPose.getX(),
+                            robotPose.getY(),
+                            robotPose.getHeading()
                                     + Math.toRadians(turretTrackingOffset));
 
                 }
@@ -796,8 +800,8 @@ public class RedTeleop extends LinearOpMode {
             telemetry.addData("colors: ", colors[0]);
             telemetry.addData("colors: ", colors[1]);
             telemetry.addData("colors: ", colors[2]);
-            telemetry.addData("x:", robotPose.position.x);
-            telemetry.addData("y", robotPose.position.y);
+            telemetry.addData("x:", robotPose.getX());
+            telemetry.addData("y", robotPose.getY());
             telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed + flyOffset+flyUp);
             telemetry.addData("CurrentFlyspeed: ", smoothedFly);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
@@ -805,7 +809,7 @@ public class RedTeleop extends LinearOpMode {
             telemetry.addData("Turret Angle", "%.1f°", mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
             telemetry.addData("Tracking?", trackingOn);
             telemetry.addData("Target Angle: ", tuPos);
-            telemetry.addData("Bot Heading Difference to Turret: ", normalizeDeg180(Math.toDegrees(Math.atan2(robotPose.heading.real, robotPose.heading.imag))));
+            telemetry.addData("Bot Heading Difference to Turret: ", normalizeDeg180(Math.toDegrees(robotPose.getHeading())));
             telemetry.update();
         }
     }
@@ -1017,8 +1021,8 @@ public class RedTeleop extends LinearOpMode {
         if (tag == null) return false;
 
         // Use Pedro pose for heading
-        Pose2d current = follower.localizer.getPose();
-        double robotHeading = current.heading.imag;
+        Pose current = follower.getPose();
+        double robotHeading = current.getHeading();
 
         double tagX = TAG_X_PEDRO;
         double tagY = TAG_Y_PEDRO;
@@ -1045,7 +1049,7 @@ public class RedTeleop extends LinearOpMode {
         double robotX = cameraX - fieldOffsetX;
         double robotY = cameraY - fieldOffsetY;
 
-        Pose2d candidatePose = new Pose2d(robotX, robotY, robotHeading);
+        Pose candidatePose = new Pose(robotX, robotY, robotHeading);
 
         // Add to samples list
         localizationSamples.add(candidatePose);
@@ -1058,13 +1062,13 @@ public class RedTeleop extends LinearOpMode {
         }
 
         // We have enough samples - filter outliers and average
-        Pose2d averagedPose = filterAndAveragePoses(localizationSamples);
+        Pose averagedPose = filterAndAveragePoses(localizationSamples);
 
         if (averagedPose != null) {
-            follower.localizer.setPose(averagedPose);
+            follower.setPose(averagedPose);
             telemetry.addData("Localized!", "x=%.1f y=%.1f h=%.1f",
-                    averagedPose.position.x, averagedPose.position.y,
-                    Math.toDegrees(averagedPose.heading.imag));
+                    averagedPose.getX(), averagedPose.getY(),
+                    Math.toDegrees(averagedPose.getHeading()));
 
             // Save debug values
             lastLocalizeRange = range;
@@ -1073,8 +1077,8 @@ public class RedTeleop extends LinearOpMode {
             lastLocalizeRobotHeading = Math.toDegrees(robotHeading);
             lastLocalizeCalcX = robotX;
             lastLocalizeCalcY = robotY;
-            lastLocalizeFinalX = averagedPose.position.x;
-            lastLocalizeFinalY = averagedPose.position.y;
+            lastLocalizeFinalX = averagedPose.getX();
+            lastLocalizeFinalY = averagedPose.getY();
             lastLocalizeTagX = tagX;
             lastLocalizeTagY = tagY;
             // Clear samples for next time
@@ -1101,16 +1105,16 @@ public class RedTeleop extends LinearOpMode {
         }
         return yValues[yValues.length - 1]; // fallback
     }
-    private Pose2d filterAndAveragePoses(List<Pose2d> samples) {
+    private Pose filterAndAveragePoses(List<Pose> samples) {
         if (samples.isEmpty()) return null;
 
         // Calculate median position to find center
         List<Double> xVals = new ArrayList<>();
         List<Double> yVals = new ArrayList<>();
 
-        for (Pose2d p : samples) {
-            xVals.add(p.position.x);
-            yVals.add(p.position.y);
+        for (Pose p : samples) {
+            xVals.add(p.getX());
+            yVals.add(p.getY());
         }
 
         Collections.sort(xVals);
@@ -1120,9 +1124,9 @@ public class RedTeleop extends LinearOpMode {
         double medianY = yVals.get(yVals.size() / 2);
 
         // Filter out outliers (anything too far from median)
-        List<Pose2d> filteredSamples = new ArrayList<>();
-        for (Pose2d p : samples) {
-            double distFromMedian = Math.hypot(p.position.x - medianX, p.position.y - medianY);
+        List<Pose> filteredSamples = new ArrayList<>();
+        for (Pose p : samples) {
+            double distFromMedian = Math.hypot(p.getX() - medianX, p.getY() - medianY);
             if (distFromMedian <= MAX_SAMPLE_DEVIATION) {
                 filteredSamples.add(p);
             } else {
@@ -1137,14 +1141,14 @@ public class RedTeleop extends LinearOpMode {
 
         // Average the filtered samples
         double sumX = 0, sumY = 0, sumH = 0;
-        for (Pose2d p : filteredSamples) {
-            sumX += p.position.x;
-            sumY += p.position.y;
-            sumH += p.heading.imag;
+        for (Pose p : filteredSamples) {
+            sumX += p.getX();
+            sumY += p.getY();
+            sumH += p.getHeading();
         }
 
         int n = filteredSamples.size();
-        return new Pose2d(sumX / n, sumY / n, sumH / n);
+        return new Pose(sumX / n, sumY / n, sumH / n);
     }
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
