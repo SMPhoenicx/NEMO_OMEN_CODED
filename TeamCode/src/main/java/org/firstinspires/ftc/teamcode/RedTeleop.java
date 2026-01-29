@@ -91,7 +91,6 @@ public class RedTeleop extends LinearOpMode {
 
     private double currentIndex = 0;
 
-    private boolean hasTeleopLocalized = true;
     private double timer = 0;
     private double timer1 = 0;
     private char currentshot = 'n';
@@ -503,19 +502,14 @@ public class RedTeleop extends LinearOpMode {
                 follower.setPose(new Pose(-72,-72, Math.toRadians(180)));
             }            //region GOAL TRACKING
             if (trackingOn) {
-                if (!hasTeleopLocalized) {
-                    tuPos = turretZeroDeg;
-                }
-                else {
                     tuPos = calcTuTarget(
                             robotPose.getX(),
                             robotPose.getY(),
                             robotPose.getHeading()
                                     + Math.toRadians(turretTrackingOffset));
 
-                }
             }
-            if (!trackingOn) {
+            else {
                 //zeros position
                 tuPos = normalizeDeg180(turretZeroDeg);
             }
