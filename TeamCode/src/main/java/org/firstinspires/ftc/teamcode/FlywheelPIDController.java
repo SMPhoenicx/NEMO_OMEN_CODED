@@ -14,11 +14,11 @@ public class FlywheelPIDController {
     //tune second until it responds fast to changes but doesn't oscillate too much
     //should stay within 20-60 of commanded speed
     public double Kp = 0.0022;
-    public double Ki = 0.0001;
+    public double Ki = 0;
     //tune to prevent overshoots
-    public double Kd = 0.0008;
+    public double Kd = 0.002;
     //tune first until flywheel maintains the commanded speed
-    public double Kv = 0.000446;
+    public double Kv = 0.0004;
     //leave this one
     public double Ka = 1e-7;
 

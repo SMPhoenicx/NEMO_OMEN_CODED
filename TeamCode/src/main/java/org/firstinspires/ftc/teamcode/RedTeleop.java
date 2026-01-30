@@ -76,9 +76,9 @@ public class RedTeleop extends LinearOpMode {
     //region SHOOTING SYSTEM
     private double flyTargetSpeed = 0.0;
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {1,1,1,1,1,1,1,1,1,1};
-    private static final double[] FLY_SPEEDS =          {1,1,1,1,1,1,1,1,1,1};
-    private static final double[] HOOD_ANGLES=          {1,1,1,1,1,1,1,1,1,1};
+    private static final double[] ODOM_RANGE_SAMPLES =  {45.2, 50.2, 55.3, 60.9, 66.5, 72.2, 76.7, 81.1, 86.3, 90.9, 96.2, 99.7, 104.3, 109.9, 118.1, 128.5, 139.6, 148.7};
+    private static final double[] FLY_SPEEDS =          {1005, 1026, 1059, 1083, 1129, 1143, 1155, 1162, 1219, 1251, 1261, 1267, 1256, 1283, 1297, 1370, 1393, 1420};
+    private static final double[] HOOD_ANGLES=          {.1,.1,.1,.1,.1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
     private boolean flyHoodLock = false;
     private double smoothedRange = 0;
@@ -98,7 +98,7 @@ public class RedTeleop extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
     private List<Pose> localizationSamples = new ArrayList<>();
-    private double turretTrackingOffset = 93;
+    private double turretTrackingOffset = -12;
 
     private static final double ALPHA = 0.8;
     //endregion
@@ -109,6 +109,7 @@ public class RedTeleop extends LinearOpMode {
     //endregion
 
     //region FLYWHEEL SYSTEM
+    private FlywheelPIDController flywheel;
     double flyKp = 13.82;
     double flyKi = 0.53;
     double flyKd = 10.1;
@@ -121,9 +122,9 @@ public class RedTeleop extends LinearOpMode {
 
     //region SPINDEXER SYSTEM
     // Spindexer PIDF Constants
-    private double pidKp = 0.0160;
+    private double pidKp = 0.0360;
     private double pidKi = 0.0018;
-    private double pidKd = 0.0008;
+    private double pidKd = 0.0018;
     private double pidKf = 0.000;
 
     // Spindexer PID State
@@ -188,7 +189,7 @@ public class RedTeleop extends LinearOpMode {
     //endregion
 
     //region VARIANT VARS (Alliance Specific)
-    private static final double goalX = 0;
+    private static final double goalX = 143;
     private static final double goalY = 143;
     private static final int DESIRED_TAG_ID = 24; //blue=20, red=24
     private static final Pose LOCALIZE_POSE = new Pose(135, 8.9, Math.toRadians(0));
@@ -255,16 +256,19 @@ public class RedTeleop extends LinearOpMode {
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backRight.setDirection(DcMotor.Direction.REVERSE);
 
-        fly1.setDirection(DcMotor.Direction.REVERSE);
-        fly2.setDirection(DcMotor.Direction.REVERSE);
-        intake.setDirection(DcMotor.Direction.REVERSE);
+        fly1.setDirection(DcMotor.Direction.FORWARD);
+        fly2.setDirection(DcMotor.Direction.FORWARD);
+        intake.setDirection(DcMotor.Direction.FORWARD);
 
         spin.setDirection(CRServo.Direction.FORWARD);
         hood.setDirection(Servo.Direction.FORWARD);
 
         turret1.setDirection(CRServo.Direction.REVERSE);
         turret2.setDirection(CRServo.Direction.REVERSE);
-
+        flywheel = new FlywheelPIDController(
+                hardwareMap.get(DcMotorEx.class, "fly1"),
+                hardwareMap.get(DcMotorEx.class, "fly2")
+        );
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -281,6 +285,10 @@ public class RedTeleop extends LinearOpMode {
         //endregion
 
         while (opModeIsActive()) {
+            double nowMs = runtime.milliseconds();
+            double dtSec = (nowMs - pidLastTimeMs) / 1000.0;
+            if (dtSec <=0.0) dtSec = 1.0/50.0;
+            pidLastTimeMs = nowMs;
 
             //region PEDRO
             follower.update();
@@ -343,17 +351,17 @@ public class RedTeleop extends LinearOpMode {
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
             double baseF = 12.0 / 2450.0;
             double compensatedF = baseF * (13.0 / voltage);
-
-            fly1.setVelocityPIDFCoefficients(flyKp + flyKpOffset, flyKi + flyKiOffset, flyKd, compensatedF);
-            fly2.setVelocityPIDFCoefficients(flyKp + flyKpOffset, flyKi + flyKiOffset, flyKd, compensatedF);
-
             if (flyOn) {
-                fly1.setVelocity(flySpeed + flyOffset);
-                fly2.setVelocity(flySpeed + flyOffset);
+                flywheel.updateFlywheelPID(
+                        flySpeed + flyOffset,
+                        dtSec,
+                        voltage
+                );
             } else {
                 fly1.setVelocity(0);
                 fly2.setVelocity(0);
             }
+
 
             // check if flywheel is at speed
             double measuredVelocity = (fly1.getVelocity() + fly2.getVelocity()) * 0.5;
@@ -377,10 +385,10 @@ public class RedTeleop extends LinearOpMode {
             //region HOOD CONTROL
             //position adjustments
             if (gamepad2.dpadUpWasPressed()) {
-                hoodOffset -= 5;
+                hoodOffset += 0.05;
             }
             if (gamepad2.dpadDownWasPressed()) {
-                hoodOffset += 5;
+                hoodOffset -= 0.05;
             }
 
             //pid
@@ -408,12 +416,6 @@ public class RedTeleop extends LinearOpMode {
             }
             //endregion
 
-            //eek
-            double nowMs = runtime.milliseconds();
-            double dtSec = (nowMs - pidLastTimeMs) / 1000.0;
-            if (dtSec <=0.0) dtSec = 1.0/50.0;
-            pidLastTimeMs = nowMs;
-
             //region SPINDEXER STUFF
             if (currentshot == 'n') {
                 if (gamepad2.triangleWasPressed()) {
@@ -430,17 +432,17 @@ public class RedTeleop extends LinearOpMode {
 
             //bro what...
             if (!transOn){
-                if (gamepad2.leftBumperWasPressed()) {
-                    currentshot = 'p';
-                }
-                if (gamepad2.rightBumperWasPressed()){
-                    currentshot = 'g';
-                }
+//                if (gamepad2.leftBumperWasPressed()) {
+//                    currentshot = 'p';
+//                }
+//                if (gamepad2.rightBumperWasPressed()){
+//                    currentshot = 'g';
+//                }
                 gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
                     currentIndex -= 1;
-                    colors = addX(0, colors, colors[0]);
+                    colors = addX(0, colors, colors[2]);
                     colors = remove(colors, 3);
                     SPINDEXER_POSITION -= 60;
                 }
@@ -456,7 +458,7 @@ public class RedTeleop extends LinearOpMode {
                     SPINDEXER_POSITION += findIndex(colors, currentshot)*60;
                 }
                 if (intakeOn){
-                    if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2&&runtime.milliseconds()-timer1>400&&findIndex(colors, 'n') != -1){
+                    if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2&&runtime.milliseconds()-timer1>600&&findIndex(colors, 'n') != -1){
                         SPINDEXER_POSITION -= 60;
                         currentIndex += 1;
                         colors[0] = getDetectedColor();
@@ -499,7 +501,7 @@ public class RedTeleop extends LinearOpMode {
                 lastTuTargetInit = false;
             }
             if (gamepad1.psWasPressed()){
-                follower.setPose(new Pose(-72,-72, Math.toRadians(180)));
+                follower.setPose(new Pose(9,9, Math.toRadians(180)));
             }            //region GOAL TRACKING
             if (trackingOn) {
                     tuPos = calcTuTarget(
@@ -571,7 +573,7 @@ public class RedTeleop extends LinearOpMode {
             //region DRIVE
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
-            turn = -gamepad1.right_stick_x;
+            turn = gamepad1.right_stick_x;
             moveRobot(1.5*drive, strafe, -turn);
             //endregion
 
@@ -584,7 +586,9 @@ public class RedTeleop extends LinearOpMode {
             telemetry.addData("x:", robotPose.getX());
             telemetry.addData("y", robotPose.getY());
             telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed + flyOffset);
+            telemetry.addData("Flymeasure: ", measuredVelocity);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
+            telemetry.addData("Hood Target: ", hoodAngle + hoodOffset);
             telemetry.addData("Spindexer Target", "%.1f°", targetAngle);
             telemetry.addData("Turret Angle", "%.1f°", mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
             telemetry.addData("Tracking?", trackingOn);
@@ -595,6 +599,7 @@ public class RedTeleop extends LinearOpMode {
         }
     }
 
+    //region ALL METHODS
     //region METHODS
     public static int findIndex(char a[], int t)
     {
@@ -1041,5 +1046,6 @@ public class RedTeleop extends LinearOpMode {
 ////                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
 //                .build();
 //    }
+    //endregion
     //endregion
 }

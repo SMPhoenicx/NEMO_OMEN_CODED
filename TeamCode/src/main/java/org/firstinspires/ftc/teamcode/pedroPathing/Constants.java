@@ -57,11 +57,11 @@ public class Constants {
             .yVelocity(61.04358294629676);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-6.65625)
-            .strafePodX(-6.6875)
+            .forwardPodY(-6.625)
+            .strafePodX(-5.1)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD)
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+            .customEncoderResolution(934.27472527127995700762048211019)
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 }
