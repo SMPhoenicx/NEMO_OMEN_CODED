@@ -255,25 +255,25 @@ public class CloseRed extends LinearOpMode {
     private static final double goalY = 72;
 
     public void createPoses() {
-        startPose = new Pose(19.9, 123.5, Math.toRadians(54));
+        startPose = new Pose(144-19.9,123.5,Math.toRadians(180-54));
 
         //0 is control point, 1 is endpoint
-        pickup1[0] = new Pose(46.44, 81.52, Math.toRadians(180));
-        pickup1[1] = new Pose(17.5, 84, Math.toRadians(180));
+        pickup1[0] = new Pose(144-46.44,81.52,Math.toRadians(0));
+        pickup1[1] = new Pose(144-17.5,84,Math.toRadians(0));
 
-        gatePose[0] = new Pose(25.82, 77.24, Math.toRadians(90));
-        gatePose[1] = new Pose(14.62, 75.3, Math.toRadians(90));//45.5 3
+        gatePose[0] = new Pose(144-25.82,77.24,Math.toRadians(90));
+        gatePose[1] = new Pose(144-14.62,75.3,Math.toRadians(90));//45.5 3
 
-        pickup2[0] = new Pose(63.97, 54.52, Math.toRadians(180));
-        pickup2[1] = new Pose(10, 58.36, Math.toRadians(180));
+        pickup2[0] = new Pose(144-63.97,54.52,Math.toRadians(0));
+        pickup2[1] = new Pose(144-10,58.36,Math.toRadians(0));
         //return from pickup
-        pickup2[2] = new Pose(48.083, 54.73, Math.toRadians(180));
+        pickup2[2] = new Pose(144-48.083, 54.73,Math.toRadians(0));
 
-        pickup3[0] = new Pose(76.64, 30.5, Math.toRadians(180));
-        pickup3[1] = new Pose(10, 35.58, Math.toRadians(180));
+        pickup3[0] = new Pose(144-76.64,30.5,Math.toRadians(0));
+        pickup3[1] = new Pose(144-10,35.58,Math.toRadians(0));
 
-        shoot1 = new Pose(57.5, 98.4, Math.toRadians(180));
-        movePoint = new Pose(31, 69.6, Math.toRadians(90));
+        shoot1 = new Pose(144-57.5,98.4,Math.toRadians(0));
+        movePoint = new Pose(144-31,69.6,Math.toRadians(90));
     }
 
     public void createPaths() {
@@ -430,6 +430,8 @@ public class CloseRed extends LinearOpMode {
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        color1 = hardwareMap.get(RevColorSensorV3.class, "color1");
+
         // Hubs
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
         for (LynxModule hub : allHubs) {
@@ -445,7 +447,7 @@ public class CloseRed extends LinearOpMode {
         limelight.pipelineSwitch(1);
 
         initAprilTag();
-        setManualExposure(4, 200);
+//        setManualExposure(4, 200);
         //endregion
 
         //region INITIALIZE PEDRO
@@ -1172,38 +1174,38 @@ public class CloseRed extends LinearOpMode {
                 .build();
     }
 
-    private void setManualExposure(int exposureMS, int gain) {
-
-        if (visionPortal == null) {
-            return;
-        }
-
-        // Make sure camera is streaming before we try to set the exposure controls
-        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
-            telemetry.addData("Camera", "Waiting");
-            telemetry.update();
-            while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
-                sleep(20);
-            }
-            telemetry.addData("Camera", "Ready");
-            telemetry.update();
-        }
-
-        // Set camera controls unless we are stopping.
-        if (!isStopRequested())
-        {
-            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
-            if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
-                exposureControl.setMode(ExposureControl.Mode.Manual);
-                sleep(50);
-            }
-            exposureControl.setExposure((long)exposureMS, TimeUnit.MILLISECONDS);
-            sleep(20);
-            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
-            gainControl.setGain(gain);
-            sleep(20);
-        }
-    }
+//    private void setManualExposure(int exposureMS, int gain) {
+//
+//        if (visionPortal == null) {
+//            return;
+//        }
+//
+//        // Make sure camera is streaming before we try to set the exposure controls
+//        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+//            telemetry.addData("Camera", "Waiting");
+//            telemetry.update();
+//            while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
+//                sleep(20);
+//            }
+//            telemetry.addData("Camera", "Ready");
+//            telemetry.update();
+//        }
+//
+//        // Set camera controls unless we are stopping.
+//        if (!isStopRequested())
+//        {
+//            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+//            if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
+//                exposureControl.setMode(ExposureControl.Mode.Manual);
+//                sleep(50);
+//            }
+//            exposureControl.setExposure((long)exposureMS, TimeUnit.MILLISECONDS);
+//            sleep(20);
+//            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+//            gainControl.setGain(gain);
+//            sleep(20);
+//        }
+//    }
 
     private void adjustDecimation(double range) {
         int newDecimation;
