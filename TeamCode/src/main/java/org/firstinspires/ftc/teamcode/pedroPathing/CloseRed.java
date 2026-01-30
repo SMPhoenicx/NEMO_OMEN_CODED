@@ -55,7 +55,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Autonomous(name="Close Blue", group="Robot")
-public class CloseBlue extends LinearOpMode {
+public class CloseRed extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     private double timeout = 0;
     double TURN_P = 0.06;
