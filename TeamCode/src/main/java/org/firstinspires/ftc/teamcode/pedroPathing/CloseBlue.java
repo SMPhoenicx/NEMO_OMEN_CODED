@@ -97,7 +97,7 @@ public class CloseBlue extends LinearOpMode {
     private static final double MAX_SAMPLE_DEVIATION = 3.0; // inches - reject outliers
     private Servo hood;
     private Servo led;
-    private RevColorSensorV3 color1;
+    private RevColorSensorV3 color;
     private CRServo turret1;
     private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 0.7};//may have to change
@@ -403,6 +403,10 @@ public class CloseBlue extends LinearOpMode {
         backRight = hardwareMap.get(DcMotor.class, "br");
         fly1 = hardwareMap.get(DcMotorEx.class, "fly1");
         fly2 = hardwareMap.get(DcMotorEx.class, "fly2");
+        flywheel= new FlywheelPIDController(
+                hardwareMap.get(DcMotorEx.class, "fly1"),
+                hardwareMap.get(DcMotorEx.class, "fly2")
+        );
         intake = hardwareMap.get(DcMotor.class, "in");
         transfer = hardwareMap.get(DcMotor.class, "transfer");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -430,7 +434,7 @@ public class CloseBlue extends LinearOpMode {
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        color1 = hardwareMap.get(RevColorSensorV3.class, "color1");
+        color = hardwareMap.get(RevColorSensorV3.class, "color");
 
         // Hubs
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
@@ -446,7 +450,7 @@ public class CloseBlue extends LinearOpMode {
         limelight.start();
         limelight.pipelineSwitch(1);
 
-        initAprilTag();
+        //initAprilTag();
 //        setManualExposure(4, 200);
         //endregion
 
@@ -457,9 +461,9 @@ public class CloseBlue extends LinearOpMode {
                 startPose,
                 InvertedFTCCoordinates.INSTANCE
         );
-
-        pinpoint.resetPosAndIMU();
-        pinpoint.setPosition(ftcStartPose);
+//
+//        pinpoint.resetPosAndIMU();
+//        pinpoint.setPosition(ftcStartPose);
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -829,7 +833,7 @@ public class CloseBlue extends LinearOpMode {
     }
     //region HELPER METHODS
     private char getRealColor(){
-        char c1 = getDetectedColor1(color1);
+        char c1 = getDetectedcolor(color);
 
         if(c1=='p'){
             return 'p';
@@ -840,7 +844,7 @@ public class CloseBlue extends LinearOpMode {
         return 'n';
     }
 
-    private char getDetectedColor1(NormalizedColorSensor sensor){
+    private char getDetectedcolor(NormalizedColorSensor sensor){
         double dist = ((DistanceSensor) sensor).getDistance(DistanceUnit.CM);
         if (Double.isNaN(dist) || dist > GlobalOffsets.colorSensorDist1) {
             return 'n';
@@ -880,9 +884,9 @@ public class CloseBlue extends LinearOpMode {
         }
     }
     private boolean isBallPresent() {
-        double dist1 = ((DistanceSensor) color1).getDistance(DistanceUnit.CM);
+        double dist1 = ((DistanceSensor) color).getDistance(DistanceUnit.CM);
 
-        NormalizedRGBA colors1 = color1.getNormalizedColors();
+        NormalizedRGBA colors1 = color.getNormalizedColors();
 
         boolean s1Detected = !Double.isNaN(dist1) && dist1 < GlobalOffsets.colorSensorDist1;
 
@@ -1133,46 +1137,46 @@ public class CloseBlue extends LinearOpMode {
         }
         return true;
     }
-    private void initAprilTag() {
-
-        Position cameraPosition = new Position(
-                DistanceUnit.INCH,
-                0, //x, right +, left -
-                4, //y, forward +, back -
-                12.5, //z up + down -
-                0
-        );
-
-        YawPitchRollAngles orientation = new YawPitchRollAngles(
-                AngleUnit.DEGREES,
-                0, //yaw, left and right
-                -70, //pitch, forward, back
-                180, //roll, orientation
-                0
-        );
-        // Create the AprilTag processor.
-        aprilTag = new AprilTagProcessor.Builder()
-                //.setDrawAxes(false)
-                //.setDrawCubeProjection(false)
-                .setDrawTagOutline(true)
-                .setCameraPose(cameraPosition, orientation)
-                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-                .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
-                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)
-
-                .build();
-
-        aprilTag.setDecimation(4);
-
-        // Create the vision portal by using a builder.
-        visionPortal = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-                .addProcessor(aprilTag)
-                .setCameraResolution(new Size(1280, 720))
-                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                .build();
-    }
+//    private void initAprilTag() {
+//
+//        Position cameraPosition = new Position(
+//                DistanceUnit.INCH,
+//                0, //x, right +, left -
+//                4, //y, forward +, back -
+//                12.5, //z up + down -
+//                0
+//        );
+//
+//        YawPitchRollAngles orientation = new YawPitchRollAngles(
+//                AngleUnit.DEGREES,
+//                0, //yaw, left and right
+//                -70, //pitch, forward, back
+//                180, //roll, orientation
+//                0
+//        );
+//        // Create the AprilTag processor.
+//        aprilTag = new AprilTagProcessor.Builder()
+//                //.setDrawAxes(false)
+//                //.setDrawCubeProjection(false)
+//                .setDrawTagOutline(true)
+//                .setCameraPose(cameraPosition, orientation)
+//                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+//                .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
+//                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
+//                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)
+//
+//                .build();
+//
+//        aprilTag.setDecimation(4);
+//
+//        // Create the vision portal by using a builder.
+//        visionPortal = new VisionPortal.Builder()
+//                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+//                .addProcessor(aprilTag)
+//                .setCameraResolution(new Size(1280, 720))
+//                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+//                .build();
+//    }
 
 //    private void setManualExposure(int exposureMS, int gain) {
 //

@@ -140,7 +140,7 @@ public class RedTeleop extends LinearOpMode {
     private double overrideTime = 0.0;
 
     // Spindexer Positions
-    private double spindexeroffset = -9;
+    private double spindexeroffset = -50;
     private double SPINDEXER_POSITION = spindexerOffset;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
@@ -215,7 +215,7 @@ public class RedTeleop extends LinearOpMode {
 
         // Flywheel Control
         double flySpeed = 1400;
-        double flyOffset = 0;
+        double flyOffset = -60;
         double lastTime = 0;
 
         double intakePower = 0;
@@ -458,8 +458,8 @@ public class RedTeleop extends LinearOpMode {
                     SPINDEXER_POSITION += findIndex(colors, currentshot)*60;
                 }
                 if (intakeOn){
-                    if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2&&runtime.milliseconds()-timer1>200&&findIndex(colors, 'n') != -1){
-                        SPINDEXER_POSITION -= 10;
+                    if (((DistanceSensor) color).getDistance(DistanceUnit.CM) < 2&&runtime.milliseconds()-timer1>500&&findIndex(colors, 'n') != -1){
+                        SPINDEXER_POSITION -= 60;
                         currentIndex += 1;
                         colors[0] = getDetectedColor();
                         colors = addX(3, colors, colors[0]);
