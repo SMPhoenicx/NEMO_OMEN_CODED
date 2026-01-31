@@ -255,25 +255,25 @@ public class CloseRed extends LinearOpMode {
     private static final double goalY = 72;
 
     public void createPoses() {
-        startPose = new Pose(144-19.9,123.5,Math.toRadians(180-54));
+        startPose = new Pose(123.9, 123.5, Math.toRadians(54));
 
         //0 is control point, 1 is endpoint
-        pickup1[0] = new Pose(144-46.44,81.52,Math.toRadians(0));
-        pickup1[1] = new Pose(144-17.5,84,Math.toRadians(0));
+        pickup1[0] = new Pose(84, 81.52, Math.toRadians(180));
+        pickup1[1] = new Pose(126.5, 84, Math.toRadians(180));
 
-        gatePose[0] = new Pose(144-25.82,77.24,Math.toRadians(90));
-        gatePose[1] = new Pose(144-14.62,75.3,Math.toRadians(90));//45.5 3
+        gatePose[0] = new Pose(25.82, 77.24, Math.toRadians(90));
+        gatePose[1] = new Pose(14.62, 75.3, Math.toRadians(90));//45.5 3
 
-        pickup2[0] = new Pose(144-63.97,54.52,Math.toRadians(0));
-        pickup2[1] = new Pose(144-10,58.36,Math.toRadians(0));
+        pickup2[0] = new Pose(85, 59.52, Math.toRadians(180));
+        pickup2[1] = new Pose(128.5, 59.36, Math.toRadians(180));
         //return from pickup
-        pickup2[2] = new Pose(144-48.083, 54.73,Math.toRadians(0));
+        pickup2[2] = new Pose(48.083, 54.73, Math.toRadians(180));
 
-        pickup3[0] = new Pose(144-76.64,30.5,Math.toRadians(0));
-        pickup3[1] = new Pose(144-10,35.58,Math.toRadians(0));
+        pickup3[0] = new Pose(100, 34.5, Math.toRadians(180));
+        pickup3[1] = new Pose(128.5, 35.58, Math.toRadians(180));
 
-        shoot1 = new Pose(144-57.5,98.4,Math.toRadians(0));
-        movePoint = new Pose(144-31,69.6,Math.toRadians(90));
+        shoot1 = new Pose(84, 90, Math.toRadians(144));
+        movePoint = new Pose(31, 69.6, Math.toRadians(90));
     }
 
     public void createPaths() {
