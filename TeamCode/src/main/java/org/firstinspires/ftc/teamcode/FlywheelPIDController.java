@@ -16,7 +16,7 @@ public class FlywheelPIDController {
     public double Kp = 0.0006;
     public double Ki = 0;
     //tune to prevent overshoots
-    public double Kd = 0.0002;
+    public double Kd = 0.0001;
     //tune first until flywheel maintains the commanded speed1
     public double Kv = 0.00041;
     //leave this one
