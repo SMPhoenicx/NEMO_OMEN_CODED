@@ -258,21 +258,21 @@ public class CloseBlue extends LinearOpMode {
         startPose = new Pose(19.9, 123.5, Math.toRadians(54));
 
         //0 is control point, 1 is endpoint
-        pickup1[0] = new Pose(46.44, 81.52, Math.toRadians(180));
+        pickup1[0] = new Pose(60, 81.52, Math.toRadians(180));
         pickup1[1] = new Pose(17.5, 84, Math.toRadians(180));
 
         gatePose[0] = new Pose(25.82, 77.24, Math.toRadians(90));
         gatePose[1] = new Pose(14.62, 75.3, Math.toRadians(90));//45.5 3
 
-        pickup2[0] = new Pose(63.97, 54.52, Math.toRadians(180));
+        pickup2[0] = new Pose(60, 54.52, Math.toRadians(180));
         pickup2[1] = new Pose(10, 58.36, Math.toRadians(180));
         //return from pickup
         pickup2[2] = new Pose(48.083, 54.73, Math.toRadians(180));
 
-        pickup3[0] = new Pose(76.64, 30.5, Math.toRadians(180));
+        pickup3[0] = new Pose(60, 30.5, Math.toRadians(180));
         pickup3[1] = new Pose(10, 35.58, Math.toRadians(180));
 
-        shoot1 = new Pose(57.5, 98.4, Math.toRadians(180));
+        shoot1 = new Pose(56, 90, Math.toRadians(144));
         movePoint = new Pose(31, 69.6, Math.toRadians(90));
     }
 
