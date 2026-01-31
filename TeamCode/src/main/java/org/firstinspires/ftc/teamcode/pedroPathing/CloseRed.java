@@ -54,7 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="Close Blue", group="Robot")
+@Autonomous(name="Close Red", group="Robot")
 public class CloseRed extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     private double timeout = 0;
@@ -97,7 +97,7 @@ public class CloseRed extends LinearOpMode {
     private static final double MAX_SAMPLE_DEVIATION = 3.0; // inches - reject outliers
     private Servo hood;
     private Servo led;
-    private RevColorSensorV3 color1;
+    private RevColorSensorV3 color;
     private CRServo turret1;
     private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 0.7};//may have to change
@@ -255,24 +255,24 @@ public class CloseRed extends LinearOpMode {
     private static final double goalY = 72;
 
     public void createPoses() {
-        startPose = new Pose(123.9, 123.5, Math.toRadians(54));
+        startPose = new Pose(123.9, 123.5, Math.toRadians(34));
 
         //0 is control point, 1 is endpoint
-        pickup1[0] = new Pose(84, 81.52, Math.toRadians(180));
-        pickup1[1] = new Pose(126.5, 84, Math.toRadians(180));
+        pickup1[0] = new Pose(84, 81.52, Math.toRadians(0));
+        pickup1[1] = new Pose(126.5, 84, Math.toRadians(0));
 
         gatePose[0] = new Pose(25.82, 77.24, Math.toRadians(90));
         gatePose[1] = new Pose(14.62, 75.3, Math.toRadians(90));//45.5 3
 
-        pickup2[0] = new Pose(85, 59.52, Math.toRadians(180));
-        pickup2[1] = new Pose(128.5, 59.36, Math.toRadians(180));
+        pickup2[0] = new Pose(85, 59.52, Math.toRadians(0));
+        pickup2[1] = new Pose(128.5, 59.36, Math.toRadians(0));
         //return from pickup
-        pickup2[2] = new Pose(48.083, 54.73, Math.toRadians(180));
+        pickup2[2] = new Pose(48.083, 54.73, Math.toRadians(0));
 
-        pickup3[0] = new Pose(100, 34.5, Math.toRadians(180));
-        pickup3[1] = new Pose(128.5, 35.58, Math.toRadians(180));
+        pickup3[0] = new Pose(100, 34.5, Math.toRadians(0));
+        pickup3[1] = new Pose(128.5, 35.58, Math.toRadians(0));
 
-        shoot1 = new Pose(84, 90, Math.toRadians(144));
+        shoot1 = new Pose(84, 90, Math.toRadians(34));
         movePoint = new Pose(31, 69.6, Math.toRadians(90));
     }
 
@@ -403,6 +403,10 @@ public class CloseRed extends LinearOpMode {
         backRight = hardwareMap.get(DcMotor.class, "br");
         fly1 = hardwareMap.get(DcMotorEx.class, "fly1");
         fly2 = hardwareMap.get(DcMotorEx.class, "fly2");
+        flywheel = new FlywheelPIDController(
+                hardwareMap.get(DcMotorEx.class, "fly1"),
+                hardwareMap.get(DcMotorEx.class, "fly2")
+        );
         intake = hardwareMap.get(DcMotor.class, "in");
         transfer = hardwareMap.get(DcMotor.class, "transfer");
         spin = hardwareMap.get(CRServo.class, "spin");
@@ -430,7 +434,7 @@ public class CloseRed extends LinearOpMode {
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        color1 = hardwareMap.get(RevColorSensorV3.class, "color1");
+        color = hardwareMap.get(RevColorSensorV3.class, "color");
 
         // Hubs
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
@@ -446,7 +450,7 @@ public class CloseRed extends LinearOpMode {
         limelight.start();
         limelight.pipelineSwitch(1);
 
-        initAprilTag();
+//        initAprilTag();
 //        setManualExposure(4, 200);
         //endregion
 
@@ -457,9 +461,6 @@ public class CloseRed extends LinearOpMode {
                 startPose,
                 InvertedFTCCoordinates.INSTANCE
         );
-
-        pinpoint.resetPosAndIMU();
-        pinpoint.setPosition(ftcStartPose);
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -757,7 +758,7 @@ public class CloseRed extends LinearOpMode {
                         turret2.setPower(0.93);
                         cutoffCarsPID = true;
 
-                        timeout=runtime.milliseconds()+1500;
+                        timeout=runtime.milliseconds()+900;
                         shootingState++;
                     }
                 }
@@ -791,7 +792,7 @@ public class CloseRed extends LinearOpMode {
             //endregion
 
             //region TURRET
-            updateTurretPID(tuPos, dtSec);
+            //updateTurretPID(tuPos, dtSec);
             //endregion
 
             //region TRANSFER
@@ -829,7 +830,7 @@ public class CloseRed extends LinearOpMode {
     }
     //region HELPER METHODS
     private char getRealColor(){
-        char c1 = getDetectedColor1(color1);
+        char c1 = getDetectedcolor(color);
 
         if(c1=='p'){
             return 'p';
@@ -840,7 +841,7 @@ public class CloseRed extends LinearOpMode {
         return 'n';
     }
 
-    private char getDetectedColor1(NormalizedColorSensor sensor){
+    private char getDetectedcolor(NormalizedColorSensor sensor){
         double dist = ((DistanceSensor) sensor).getDistance(DistanceUnit.CM);
         if (Double.isNaN(dist) || dist > GlobalOffsets.colorSensorDist1) {
             return 'n';
@@ -880,9 +881,9 @@ public class CloseRed extends LinearOpMode {
         }
     }
     private boolean isBallPresent() {
-        double dist1 = ((DistanceSensor) color1).getDistance(DistanceUnit.CM);
+        double dist1 = ((DistanceSensor) color).getDistance(DistanceUnit.CM);
 
-        NormalizedRGBA colors1 = color1.getNormalizedColors();
+        NormalizedRGBA colors1 = color.getNormalizedColors();
 
         boolean s1Detected = !Double.isNaN(dist1) && dist1 < GlobalOffsets.colorSensorDist1;
 
@@ -1133,46 +1134,46 @@ public class CloseRed extends LinearOpMode {
         }
         return true;
     }
-    private void initAprilTag() {
-
-        Position cameraPosition = new Position(
-                DistanceUnit.INCH,
-                0, //x, right +, left -
-                4, //y, forward +, back -
-                12.5, //z up + down -
-                0
-        );
-
-        YawPitchRollAngles orientation = new YawPitchRollAngles(
-                AngleUnit.DEGREES,
-                0, //yaw, left and right
-                -70, //pitch, forward, back
-                180, //roll, orientation
-                0
-        );
+//    private void initAprilTag() {
+//
+//        Position cameraPosition = new Position(
+//                DistanceUnit.INCH,
+//                0, //x, right +, left -
+//                4, //y, forward +, back -
+//                12.5, //z up + down -
+//                0
+//        );
+//
+//        YawPitchRollAngles orientation = new YawPitchRollAngles(
+//                AngleUnit.DEGREES,
+//                0, //yaw, left and right
+//                -70, //pitch, forward, back
+//                180, //roll, orientation
+//                0
+//        );
         // Create the AprilTag processor.
-        aprilTag = new AprilTagProcessor.Builder()
-                //.setDrawAxes(false)
-                //.setDrawCubeProjection(false)
-                .setDrawTagOutline(true)
-                .setCameraPose(cameraPosition, orientation)
-                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
-                .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
-                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
-                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)
-
-                .build();
-
-        aprilTag.setDecimation(4);
-
-        // Create the vision portal by using a builder.
-        visionPortal = new VisionPortal.Builder()
-                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-                .addProcessor(aprilTag)
-                .setCameraResolution(new Size(1280, 720))
-                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
-                .build();
-    }
+//        aprilTag = new AprilTagProcessor.Builder()
+//                //.setDrawAxes(false)
+//                //.setDrawCubeProjection(false)
+//                .setDrawTagOutline(true)
+//                .setCameraPose(cameraPosition, orientation)
+//                //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
+//                .setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary())
+//                .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
+//                .setLensIntrinsics(904.848699568, 904.848699568, 658.131998572, 340.91602987)
+//
+//                .build();
+//
+//        aprilTag.setDecimation(4);
+//
+//        // Create the vision portal by using a builder.
+//        visionPortal = new VisionPortal.Builder()
+//                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+//                .addProcessor(aprilTag)
+//                .setCameraResolution(new Size(1280, 720))
+//                .setStreamFormat(VisionPortal.StreamFormat.MJPEG)
+//                .build();
+//    }
 
 //    private void setManualExposure(int exposureMS, int gain) {
 //

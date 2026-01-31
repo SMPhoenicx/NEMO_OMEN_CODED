@@ -76,8 +76,8 @@ public class RedTeleop extends LinearOpMode {
     //region SHOOTING SYSTEM
     private double flyTargetSpeed = 0.0;
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {45.2, 50.2, 55.3, 60.9, 66.5, 72.2, 76.7, 81.1, 86.3, 90.9, 96.2, 99.7, 104.3, 109.9, 118.1, 128.5, 139.6, 148.7};
-    private static final double[] FLY_SPEEDS =          {1005, 1026, 1059, 1083, 1129, 1143, 1155, 1162, 1219, 1251, 1261, 1267, 1256, 1283, 1297, 1370, 1393, 1420};
+    private static final double[] ODOM_RANGE_SAMPLES =  {45.2, 50.2, 55.3, 60.9, 66.5, 72.2, 76.7, 81.1, 86.3, 90.9, 96.2, 101.7, 105.3, 109.9, 118.1, 128.5, 139.6, 148.7};
+    private static final double[] FLY_SPEEDS =          {1005, 1026, 1059, 1083, 1129, 1143, 1155, 1162, 1251, 1261, 1267, 1256, 1283, 1297, 1370, 1393, 1420, 1460};
     private static final double[] HOOD_ANGLES=          {.1,.1,.1,.1,.1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
     private boolean flyHoodLock = false;
@@ -154,7 +154,7 @@ public class RedTeleop extends LinearOpMode {
 
     //region TURRET SYSTEM
     // PIDF Constants
-    private double tuKp = 0.0084;
+    private double tuKp = 0.0124;
     private double tuKi = 0.0;
     private double tuKd = 0.0003;
     private double tuKf = 0.0;
@@ -176,7 +176,7 @@ public class RedTeleop extends LinearOpMode {
     private double tuPos = 0.0;
 
     private static final double turretZeroDeg = 100;
-    private static final double TURRET_LIMIT_DEG = 270.0;
+    private static final double TURRET_LIMIT_DEG = 135.0;
     private double tuOffset = 0.0;
     //endregion
 
@@ -190,7 +190,7 @@ public class RedTeleop extends LinearOpMode {
 
     //region VARIANT VARS (Alliance Specific)
     private static final double goalX = 143;
-    private static final double goalY = 143;
+    private static final double goalY = 163;
     private static final int DESIRED_TAG_ID = 24; //blue=20, red=24
     private static final Pose LOCALIZE_POSE = new Pose(135, 8.9, Math.toRadians(0));
     private static final double TAG_X_PEDRO = 14.612;
@@ -429,7 +429,12 @@ public class RedTeleop extends LinearOpMode {
             }
 
             double volt = spinEncoder.getVoltage();
-
+            if (gamepad2.leftBumperWasPressed()){
+                turretTrackingOffset -= 2;
+            }
+            if (gamepad2.rightBumperWasPressed()){
+                turretTrackingOffset += 2;
+            }
             //bro what...
             if (!transOn){
 //                if (gamepad2.leftBumperWasPressed()) {
