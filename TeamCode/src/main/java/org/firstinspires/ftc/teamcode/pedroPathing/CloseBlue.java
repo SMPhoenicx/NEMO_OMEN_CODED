@@ -748,7 +748,7 @@ public class CloseBlue extends LinearOpMode {
 
             //region AUTO SHOOTING
             //prevent ball not firing
-//            if(autoShootOn&&shootingState==1&&spindexerAtTarget) transOn = true;
+            if(autoShootOn&&shootingState==1&&CarouselAtTarget) transOn = true;
 
             if(autoShootOn&&runtime.milliseconds()>timeout&&(shootReady||!follower.isBusy())){
                 intake.setPower(0);
@@ -757,8 +757,8 @@ public class CloseBlue extends LinearOpMode {
                 if(shootingState==1){
                     transOn = true;
                     if(turretAtTarget){
-                        turret1.setPower(0.93);
-                        turret2.setPower(0.93);
+                        turret1.setPower(0);
+                        turret2.setPower(0);
                         cutoffCarsPID = true;
 
                         timeout=runtime.milliseconds()+1500;

@@ -191,7 +191,7 @@ public class CloseRed extends LinearOpMode {
     private double localizeTime = 0;
     private double tuKp = 0.0084;
     private double tuKi = 0;
-    private double tuKd = 0.0003;
+    private double tuKd = 0.0004;
     private double tuKf = 0;
     private final PathConstraints shootConstraints = new PathConstraints(0.99, 100, 0.75, 0.8);
     private final PathConstraints gateConstraints = new PathConstraints(0.99, 100, 0.9, 1);
@@ -421,8 +421,9 @@ public class CloseRed extends LinearOpMode {
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backRight.setDirection(DcMotor.Direction.REVERSE);
 
-        fly1.setDirection(DcMotor.Direction.REVERSE);
-        fly2.setDirection(DcMotor.Direction.REVERSE);
+        fly1.setDirection(DcMotor.Direction.FORWARD);
+        fly2.setDirection(DcMotor.Direction.FORWARD);
+        fly2.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -512,6 +513,8 @@ public class CloseRed extends LinearOpMode {
                         //READ MOTIF is subState 1
                         else if(subState==2){
                             tuPos = -78;
+                            transfer.setPower(1);
+                            spin.setPower(1);
                             autoShootOn = true;
                             shootingState=0;
 
@@ -524,6 +527,8 @@ public class CloseRed extends LinearOpMode {
                     //region CYCLE ONE
                     case 1:
                         if(subState==0){
+                            spin.setPower(0);
+                            transfer.setPower(0);
                             follower.followPath(pickupPath1,false);
 
                             flySpeed += shoot0change;
@@ -543,6 +548,7 @@ public class CloseRed extends LinearOpMode {
                         else if(subState==3){
                             gateCutoff = false;
                             follower.followPath(scorePath1,true);
+                            transOn = true;
                             autoShootOn = true;
                             shootingState=0;
 
@@ -745,7 +751,7 @@ public class CloseRed extends LinearOpMode {
 
             //region AUTO SHOOTING
             //prevent ball not firing
-//            if(autoShootOn&&shootingState==1&&spindexerAtTarget) transOn = true;
+            if(autoShootOn&&shootingState==1&&CarouselAtTarget) transOn = true;
 
             if(autoShootOn&&runtime.milliseconds()>timeout&&(shootReady||!follower.isBusy())){
                 intake.setPower(0);
@@ -754,8 +760,8 @@ public class CloseRed extends LinearOpMode {
                 if(shootingState==1){
                     transOn = true;
                     if(turretAtTarget){
-                        turret1.setPower(0.93);
-                        turret2.setPower(0.93);
+                        turret1.setPower(0.86);
+                        turret2.setPower(0.86);
                         cutoffCarsPID = true;
 
                         timeout=runtime.milliseconds()+900;
@@ -792,7 +798,7 @@ public class CloseRed extends LinearOpMode {
             //endregion
 
             //region TURRET
-            //updateTurretPID(tuPos, dtSec);
+            updateTurretPID(tuPos, dtSec);
             //endregion
 
             //region TRANSFER
@@ -816,6 +822,7 @@ public class CloseRed extends LinearOpMode {
             telemetry.addData("Encoder Fly Speed",avgSpeed);
             telemetry.addData("path state", pathState);
             telemetry.addData("sub state",subState);
+            telemetry.addData("Transfer: ", transOn);
             telemetry.addData("shooting state",shootingState);
             telemetry.addData("x", follower.getPose().getX());
             telemetry.addData("y", follower.getPose().getY());
