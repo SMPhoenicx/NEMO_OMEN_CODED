@@ -76,9 +76,9 @@ public class RedTeleop extends LinearOpMode {
     //region SHOOTING SYSTEM
     private double flyTargetSpeed = 0.0;
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {45.2, 50.2, 55.3, 60.9, 66.5, 72.2, 76.7, 81.1, 86.3, 90.9, 96.2, 101.7, 105.3, 109.9, 118.1, 128.5, 139.6, 148.7};
-    private static final double[] FLY_SPEEDS =          {1005, 1026, 1059, 1083, 1129, 1143, 1155, 1162, 1251, 1261, 1267, 1256, 1283, 1297, 1370, 1393, 1420, 1460};
-    private static final double[] HOOD_ANGLES=          {.1,.1,.1,.1,.1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 149.4, 165, 179.2, 194.8};
+    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 700, 720, 740, 770, 800, 1200, 1250, 1300};
+    private static final double[] HOOD_ANGLES=          {.1,.3,.5,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7};
 
     private boolean flyHoodLock = false;
     private double smoothedRange = 0;
@@ -140,7 +140,7 @@ public class RedTeleop extends LinearOpMode {
     private double overrideTime = 0.0;
 
     // Spindexer Positions
-    private double spindexeroffset = -50;
+    private double spindexeroffset = -40;
     private double SPINDEXER_POSITION = spindexerOffset;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
@@ -215,7 +215,7 @@ public class RedTeleop extends LinearOpMode {
 
         // Flywheel Control
         double flySpeed = 1400;
-        double flyOffset = -60;
+        double flyOffset = 0;
         double lastTime = 0;
 
         double intakePower = 0;
@@ -341,7 +341,6 @@ public class RedTeleop extends LinearOpMode {
                 flyOffset = 0;
                 hoodOffset = 0;
             }
-
             // Flywheel Toggle
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
@@ -364,7 +363,7 @@ public class RedTeleop extends LinearOpMode {
 
 
             // check if flywheel is at speed
-            double measuredVelocity = (fly1.getVelocity() + fly2.getVelocity()) * 0.5;
+            double measuredVelocity = fly2.getVelocity();
             double flyTotal = flySpeed + flyOffset;
             flyAtSpeed = Math.abs(flyTotal - measuredVelocity) < 30;
 
@@ -590,7 +589,7 @@ public class RedTeleop extends LinearOpMode {
             telemetry.addData("colors: ", colors[2]);
             telemetry.addData("x:", robotPose.getX());
             telemetry.addData("y", robotPose.getY());
-            telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed + flyOffset);
+            telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed);
             telemetry.addData("Flymeasure: ", measuredVelocity);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
             telemetry.addData("Hood Target: ", hoodAngle + hoodOffset);

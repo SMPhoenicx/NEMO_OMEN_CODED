@@ -13,12 +13,12 @@ public class FlywheelPIDController {
     // Variables to tune
     //tune second until it responds fast to changes but doesn't oscillate too much
     //should stay within 20-60 of commanded speed
-    public double Kp = 0.0006;
+    public double Kp = 0.025;
     public double Ki = 0;
     //tune to prevent overshoots
     public double Kd = 0.0001;
     //tune first until flywheel maintains the commanded speed1
-    public double Kv = 0.00041;
+    public double Kv = 0.0008;
     //leave this one
     public double Ka = 1e-7;
 
@@ -68,7 +68,7 @@ public class FlywheelPIDController {
             fly2.setPower(0.0);
 
             lastMeasuredVelocity =
-                    (fly1.getVelocity() + fly2.getVelocity()) * 0.5;
+                    fly2.getVelocity();
 
             return;
         }
@@ -84,7 +84,7 @@ public class FlywheelPIDController {
         if (Math.abs(diff) > maxStep) commandedVelocity += Math.signum(diff) * maxStep;
         else commandedVelocity = targetTicksPerSec;
 
-        double measured = (fly1.getVelocity() + fly2.getVelocity()) * 0.5;
+        double measured = fly2.getVelocity();
 
         double commandedAccel = (commandedVelocity - lastMeasuredVelocity) / Math.max(dt, 1e-6);
         double ff = Kv * commandedVelocity + Ka * commandedAccel;
