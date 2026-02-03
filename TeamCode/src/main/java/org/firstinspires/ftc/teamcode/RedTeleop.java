@@ -479,9 +479,9 @@ public class RedTeleop extends LinearOpMode {
                 gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
                 if (currentshot == 'n') {
-                    if (runtime.milliseconds() - timer > 600) {
+                    if (runtime.milliseconds() - timer > 120) {
                         transfer.setPower(1);
-                        SPINDEXER_POSITION += 60;
+                        SPINDEXER_POSITION += 10;
                         colors = addX(3, colors, colors[0]);
                         colors = remove(colors, 0);
                         currentIndex += 1;
