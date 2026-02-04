@@ -54,8 +54,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Autonomous(name="Close Red", group="Robot")
-public class CloseRed extends LinearOpMode {
+@Autonomous(name="Far Red", group="Robot")
+public class FarRed extends LinearOpMode {
     private ElapsedTime pidTimer = new ElapsedTime();
     private double timeout = 0;
     double TURN_P = 0.06;
@@ -72,8 +72,7 @@ public class CloseRed extends LinearOpMode {
     private Pose[] pickup1 = new Pose[3];
     private Pose[] pickup2 = new Pose[3];
     private Pose[] pickup3 = new Pose[3];
-    private Pose[] gatePose = new Pose[3];
-    private PathChain scorePath0, scorePath1, scorePath2, scorePath3, moveScore, limelightPath, gatePath, pickupPath1, pickupPath2, pickupPath3;
+    private PathChain scorePath0, scorePath1, scorePath2, scorePath3, moveScore, pickupPath1, pickupPath2, pickupPath3;
     //endregion
 
     //region HARDWARE DECLARATIONS
@@ -101,9 +100,10 @@ public class CloseRed extends LinearOpMode {
     private CRServo turret1;
     private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 0.7};//may have to change
-    private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 149.4, 165, 179.2, 194.8};
-    private static final double[] FLY_SPEEDS = {580, 600, 640, 660, 700, 720, 740, 770, 800, 1200, 1250, 1300};
-    private static final double[] HOOD_ANGLES=          {.1,.3,.5,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7};
+    private static final double[] CAM_RANGE_SAMPLES = {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
+    private static final double[] ODOM_RANGE_SAMPLES = {31.6, 44.8, 50, 55.1, 60.4, 65.5, 71.1, 76.3, 81.2, 85.8, 90.3, 144};
+    private static final double[] FLY_SPEEDS = {850, 950, 1000, 1050, 1100, 1150, 1200, 1225, 1250, 1275, 1300, 1400};
+    private static final double[] HOOD_ANGLES = {0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.8, 0.8};
     //SENSOR
     private GoBildaPinpointDriver pinpoint = null;
     private AnalogInput spinEncoder;
@@ -148,7 +148,6 @@ public class CloseRed extends LinearOpMode {
     boolean transOn = false;
     boolean autoShootOn = false;
     boolean intakeLimelightOn = false;
-    boolean gateCutoff = false;
     boolean cutoffCarsPID = false;
 
     // Ball Storage Tracking
@@ -188,12 +187,11 @@ public class CloseRed extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.0005;
-    private double tuKi = 0.000;
-    private double tuKd = 0.009;
+    private double tuKp = 0.0084;
+    private double tuKi = 0;
+    private double tuKd = 0.0004;
     private double tuKf = 0;
     private final PathConstraints shootConstraints = new PathConstraints(0.99, 100, 0.75, 0.8);
-    private final PathConstraints gateConstraints = new PathConstraints(0.99, 100, 0.9, 1);
 
     // Carousel PID State
     private double tuLastTimeMs = 0.0;
@@ -226,7 +224,7 @@ public class CloseRed extends LinearOpMode {
     private static final double tuKv = 0; // start small
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = 93;
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
     private static final double TURRET_DERIVATIVE_GAIN = 0.8;
@@ -257,27 +255,22 @@ public class CloseRed extends LinearOpMode {
         startPose = new Pose(123.9, 123.5, Math.toRadians(34));
 
         //0 is control point, 1 is endpoint
-        pickup1[0] = new Pose(84, 81.52, Math.toRadians(0));
-        pickup1[1] = new Pose(126.5, 84, Math.toRadians(0));
+        pickup1[0] = new Pose(100, 36, Math.toRadians(0));
+        pickup1[1] = new Pose(144, 36, Math.toRadians(0));
 
-        gatePose[0] = new Pose(25.82, 77.24, Math.toRadians(90));
-        gatePose[1] = new Pose(14.62, 75.3, Math.toRadians(90));//45.5 3
 
-        pickup2[0] = new Pose(85, 59.52, Math.toRadians(0));
-        pickup2[1] = new Pose(128.5, 59.36, Math.toRadians(0));
-        //return from pickup
-        pickup2[2] = new Pose(48.083, 54.73, Math.toRadians(0));
+        pickup2[0] = new Pose(88, 8, Math.toRadians(0));
+        pickup2[1] = new Pose(144, 8, Math.toRadians(0));
 
-        pickup3[0] = new Pose(100, 34.5, Math.toRadians(0));
-        pickup3[1] = new Pose(128.5, 35.58, Math.toRadians(0));
+        pickup3[0] = new Pose(88, 8, Math.toRadians(0));
+        pickup3[1] = new Pose(144, 8, Math.toRadians(0));
 
-        shoot1 = new Pose(84, 90, Math.toRadians(34));
+        shoot1 = new Pose(88, 8, Math.toRadians(90));
         movePoint = new Pose(31, 69.6, Math.toRadians(90));
     }
 
     public void createPaths() {
         scorePath0 = follower.pathBuilder()
-                .addPath(new BezierLine(startPose, shoot1))
                 .setConstraints(shootConstraints)
                 .setLinearHeadingInterpolation(startPose.getHeading(), shoot1.getHeading(), 0.65)
                 .addParametricCallback(0.75, () -> {
@@ -318,19 +311,14 @@ public class CloseRed extends LinearOpMode {
                 })
                 .setTimeoutConstraint(500)
                 .build();
-        gatePath = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup1[1], gatePose[0], gatePose[1]))
-                .setConstraints(gateConstraints)
-                .setLinearHeadingInterpolation(pickup1[1].getHeading(), gatePose[1].getHeading())
-                .build();
         scorePath1 = follower.pathBuilder()
-                .addPath(new BezierLine(gatePose[1], shoot1))
+                .addPath(new BezierLine(pickup1[1], shoot1))
                 .setConstraints(shootConstraints)
-                .setLinearHeadingInterpolation(gatePose[1].getHeading(), shoot1.getHeading())
+                .setLinearHeadingInterpolation(pickup1[1].getHeading(), shoot1.getHeading())
                 .addParametricCallback(0.983, () -> shootReady = true)
                 .build();
         scorePath2 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup2[1], pickup2[2], shoot1))
+                .addPath(new BezierCurve(pickup2[1], shoot1))
                 .setConstraints(shootConstraints)
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
@@ -534,18 +522,7 @@ public class CloseRed extends LinearOpMode {
 
                             subState++;
                         }
-                        //INTAKE is subState 1
                         else if(subState==2){
-                            follower.setMaxPower(1);
-                            follower.followPath(gatePath,false);
-                            tuPos = -78;
-                            gateCutoff = true;
-
-                            timeout = runtime.milliseconds()+1400;
-                            subState++;
-                        }
-                        else if(subState==3){
-                            gateCutoff = false;
                             follower.followPath(scorePath1,true);
                             transOn = true;
                             autoShootOn = true;
@@ -720,32 +697,32 @@ public class CloseRed extends LinearOpMode {
             }
             //endregion
 
-            //region SHOOT PREP
-            if(autoShootOn&&shootingState==0){
-                int greenIn=-1;
-                for(int i=0;i<3;i++){
-                    if(savedBalls[i]=='g'){
-                        greenIn=i;
-                    }
-                }
-                if(greenIn==-1){
-                    for(int i=0;i<3;i++){
-                        if(savedBalls[i]=='n' || savedBalls[i]=='b'){
-                            greenIn=i;
-                        }
-                    }
-                }
-                if(greenIn==-1) greenIn=0;
-
-                int diff = (greenIn + greenPos) % 3;
-                if(diff==0) carouselIndex=4;
-                else if(diff==1) carouselIndex=0;
-                else carouselIndex=2;
-                CarouselAtTarget=false;
-                timeout = runtime.milliseconds() + 300;
-
-                shootingState++;
-            }
+//            //region SHOOT PREP
+//            if(autoShootOn&&shootingState==0&&!motifOn){
+//                int greenIn=-1;
+//                for(int i=0;i<3;i++){
+//                    if(savedBalls[i]=='g'){
+//                        greenIn=i;
+//                    }
+//                }
+//                if(greenIn==-1){
+//                    for(int i=0;i<3;i++){
+//                        if(savedBalls[i]=='n' || savedBalls[i]=='b'){
+//                            greenIn=i;
+//                        }
+//                    }
+//                }
+//                if(greenIn==-1) greenIn=0;
+//
+//                int diff = (greenIn + greenPos) % 3;
+//                if(diff==0) carouselIndex=4;
+//                else if(diff==1) carouselIndex=0;
+//                else carouselIndex=2;
+//                CarouselAtTarget=false;
+//                timeout = runtime.milliseconds() + 300;
+//
+//                shootingState++;
+//            }
             //endregion
 
             //region AUTO SHOOTING
@@ -756,7 +733,7 @@ public class CloseRed extends LinearOpMode {
                 intake.setPower(0);
 //                double avgSpeed = (fly1.getVelocity() + fly2.getVelocity()) / 2.0;
 //                if(shootingState==1&&spindexerAtTarget&&avgSpeed > flySpeed * 0.94 && avgSpeed < flySpeed * 1.08){
-                if(shootingState==1){
+                if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
                         turret1.setPower(0.86);
@@ -767,7 +744,7 @@ public class CloseRed extends LinearOpMode {
                         shootingState++;
                     }
                 }
-                else if(shootingState==2){
+                else if(shootingState==1){
                     savedBalls[0]='n'; savedBalls[1]='n'; savedBalls[2]='n';
 
                     cutoffCarsPID = false;
@@ -808,11 +785,6 @@ public class CloseRed extends LinearOpMode {
                 transfer.setPower(0);
             }
 
-            //region GATE CUTOFF
-            if(runtime.milliseconds()>timeout&&gateCutoff){
-                gateCutoff = false;
-                follower.breakFollowing();
-            }
             //endregion
 
             //region TELEMETRY
@@ -1125,10 +1097,10 @@ public class CloseRed extends LinearOpMode {
 
         Pose ballPose = new Pose(ballX,ballY,ballHeading);
 
-        limelightPath = follower.pathBuilder()
-                .addPath(new BezierLine(follower.getPose(),ballPose))
-                .setLinearHeadingInterpolation(follower.getPose().getHeading(),ballPose.getHeading())
-                .build();
+//        limelightPath = follower.pathBuilder()
+//                .addPath(new BezierLine(follower.getPose(),ballPose))
+//                .setLinearHeadingInterpolation(follower.getPose().getHeading(),ballPose.getHeading())
+//                .build();
     }
     private Pose limelightPose(){
         return new Pose();
@@ -1157,7 +1129,7 @@ public class CloseRed extends LinearOpMode {
 //                180, //roll, orientation
 //                0
 //        );
-        // Create the AprilTag processor.
+    // Create the AprilTag processor.
 //        aprilTag = new AprilTagProcessor.Builder()
 //                //.setDrawAxes(false)
 //                //.setDrawCubeProjection(false)

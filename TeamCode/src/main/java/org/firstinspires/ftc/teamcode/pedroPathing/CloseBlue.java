@@ -101,10 +101,10 @@ public class CloseBlue extends LinearOpMode {
     private CRServo turret1;
     private CRServo turret2;
     private final double[] HOOD_POSITIONS = {0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 0.7};//may have to change
-    private static final double[] CAM_RANGE_SAMPLES = {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES = {31.6, 44.8, 50, 55.1, 60.4, 65.5, 71.1, 76.3, 81.2, 85.8, 90.3, 144};
-    private static final double[] FLY_SPEEDS = {850, 950, 1000, 1050, 1100, 1150, 1200, 1225, 1250, 1275, 1300, 1400};
-    private static final double[] HOOD_ANGLES = {0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.8, 0.8};
+    private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
+    private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 149.4, 165, 179.2, 194.8};
+    private static final double[] FLY_SPEEDS = {580, 600, 640, 660, 700, 720, 740, 770, 800, 1200, 1250, 1300};
+    private static final double[] HOOD_ANGLES=          {.1,.3,.5,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7};
     //SENSOR
     private GoBildaPinpointDriver pinpoint = null;
     private AnalogInput spinEncoder;
@@ -189,7 +189,7 @@ public class CloseBlue extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.0084;
+    private double tuKp = 0.0124;
     private double tuKi = 0;
     private double tuKd = 0.0003;
     private double tuKf = 0;
@@ -227,7 +227,7 @@ public class CloseBlue extends LinearOpMode {
     private static final double tuKv = 0; // start small
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
-    private double turretTrackingOffset = 93;
+    private double turretTrackingOffset = -12;
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
     private static final double TURRET_DERIVATIVE_GAIN = 0.8;
@@ -513,7 +513,7 @@ public class CloseBlue extends LinearOpMode {
                             subState++;
                         }
                         //READ MOTIF is subState 1
-                        else if(subState==2){
+                        else if(subState==1){
                             tuPos = -78;
                             autoShootOn = true;
                             shootingState=0;
@@ -534,7 +534,7 @@ public class CloseBlue extends LinearOpMode {
                             subState++;
                         }
                         //INTAKE is subState 1
-                        else if(subState==2){
+                        else if(subState==1){
                             follower.setMaxPower(1);
                             follower.followPath(gatePath,false);
                             tuPos = -78;
@@ -543,7 +543,7 @@ public class CloseBlue extends LinearOpMode {
                             timeout = runtime.milliseconds()+1400;
                             subState++;
                         }
-                        else if(subState==3){
+                        else if(subState==2){
                             gateCutoff = false;
                             follower.followPath(scorePath1,true);
                             autoShootOn = true;
@@ -563,7 +563,7 @@ public class CloseBlue extends LinearOpMode {
                             subState++;
                         }
                         //INTAKE is subState 1
-                        else if(subState==2){
+                        else if(subState==1){
                             follower.setMaxPower(1);
                             follower.followPath(scorePath2,true);
                             tuPos += 3;
@@ -584,7 +584,7 @@ public class CloseBlue extends LinearOpMode {
                             subState++;
                         }
                         //INTAKE is subState 1
-                        else if(subState==2){
+                        else if(subState==1){
                             follower.setMaxPower(1);
                             follower.followPath(scorePath3,true);
                             tuPos += 2;
@@ -598,10 +598,10 @@ public class CloseBlue extends LinearOpMode {
                     //endregion
 
                     case 4:
-//                        transOn=false;
+                        transOn=false;
                         follower.followPath(moveScore);
                         pathState++;
-//                        flySpeed=0;
+                        flySpeed=0;
                         running=false;
                         break;
                 }
