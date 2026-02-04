@@ -188,9 +188,9 @@ public class CloseRed extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.0005;
+    private double tuKp = 0.0003;
     private double tuKi = 0.000;
-    private double tuKd = 0.009;
+    private double tuKd = 0.011;
     private double tuKf = 0;
     private final PathConstraints shootConstraints = new PathConstraints(0.99, 100, 0.75, 0.8);
     private final PathConstraints gateConstraints = new PathConstraints(0.99, 100, 0.9, 1);

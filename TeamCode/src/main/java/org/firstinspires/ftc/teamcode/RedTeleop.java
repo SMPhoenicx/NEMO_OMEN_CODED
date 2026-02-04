@@ -140,7 +140,7 @@ public class RedTeleop extends LinearOpMode {
     private double overrideTime = 0.0;
 
     // Spindexer Positions
-    private double spindexeroffset = -80;
+    private double spindexeroffset = -60;
     private double SPINDEXER_POSITION = 0;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
@@ -176,7 +176,7 @@ public class RedTeleop extends LinearOpMode {
     private double tuPos = 0.0;
 
     private static final double turretZeroDeg = 100;
-    private static final double TURRET_LIMIT_DEG = 135.0;
+    private static final double TURRET_LIMIT_DEG = 270.0;
     private double tuOffset = 0.0;
     //endregion
 
@@ -425,9 +425,9 @@ public class RedTeleop extends LinearOpMode {
                 if (gamepad2.triangleWasPressed()) {
                     transOn = !transOn;
                     if (transOn) {
-                        SPINDEXER_POSITION += 90;
+                        spindexerIndex += 90;
                     } else {
-                        SPINDEXER_POSITION -= 90;
+                        spindexeroffset = -60;
                     }
                 }
             }
@@ -484,9 +484,9 @@ public class RedTeleop extends LinearOpMode {
                 gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
                 if (currentshot == 'n') {
-                    if (runtime.milliseconds() - timer > 120) {
+                    if (runtime.milliseconds() - timer > 160) {
                         transfer.setPower(1);
-                        SPINDEXER_POSITION += 10;
+                        spindexeroffset += 10;
                         colors = addX(3, colors, colors[0]);
                         colors = remove(colors, 0);
                         currentIndex += 1;
@@ -496,7 +496,7 @@ public class RedTeleop extends LinearOpMode {
                 }
             }
             double targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
-            spindexeroffset = spindexeroffset%180; //what
+            targetAngle = targetAngle%180; //what
 
             updateSpindexerPID(targetAngle, dtSec);
             //endregion
@@ -636,17 +636,16 @@ public class RedTeleop extends LinearOpMode {
     public static char[] addX(int n, char arr[], char x)
     {
 
-        char newarr[] = new char[arr.length + 1];
+        char newarr[] = new char[n + 1];
 
         // insert the elements from
         // the old array into the new array
         // insert all elements till n
         // then insert x at n+1
-        for (int i = 0; i < n - 1; i++)
+        for (int i = 0; i < n; i++)
             newarr[i] = arr[i];
-        for (int i = n; i< arr.length + 1; i++){
-            newarr[i] = arr[i-1];
-        }
+
+        newarr[n] = x;
 
         return newarr;
     }
