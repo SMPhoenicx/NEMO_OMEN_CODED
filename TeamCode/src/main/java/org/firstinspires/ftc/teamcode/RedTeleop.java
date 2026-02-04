@@ -140,8 +140,8 @@ public class RedTeleop extends LinearOpMode {
     private double overrideTime = 0.0;
 
     // Spindexer Positions
-    private double spindexeroffset = -40;
-    private double SPINDEXER_POSITION = spindexerOffset;
+    private double spindexeroffset = -80;
+    private double SPINDEXER_POSITION = 0;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
     private int prevSpindexerIndex = 0;
@@ -345,7 +345,12 @@ public class RedTeleop extends LinearOpMode {
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
-
+            if (gamepad2.squareWasPressed()) {
+                spindexeroffset -= 4;
+            }
+            if (gamepad2.crossWasPressed()) {
+                spindexeroffset += 4;
+            }
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
             double baseF = 12.0 / 2450.0;
@@ -446,7 +451,7 @@ public class RedTeleop extends LinearOpMode {
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
                     currentIndex -= 1;
-                    colors = addX(0, colors, colors[2]);
+                    colors = addX(3, colors, colors[2]);
                     colors = remove(colors, 3);
                     SPINDEXER_POSITION -= 60;
                 }
@@ -631,16 +636,17 @@ public class RedTeleop extends LinearOpMode {
     public static char[] addX(int n, char arr[], char x)
     {
 
-        char newarr[] = new char[n + 1];
+        char newarr[] = new char[arr.length + 1];
 
         // insert the elements from
         // the old array into the new array
         // insert all elements till n
         // then insert x at n+1
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n - 1; i++)
             newarr[i] = arr[i];
-
-        newarr[n] = x;
+        for (int i = n; i< arr.length + 1; i++){
+            newarr[i] = arr[i-1];
+        }
 
         return newarr;
     }
