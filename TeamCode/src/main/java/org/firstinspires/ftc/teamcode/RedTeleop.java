@@ -157,7 +157,7 @@ public class RedTeleop extends LinearOpMode {
     private double tuKp = 0.0124;
     private double tuKi = 0.0;
     private double tuKd = 0.0003;
-    private double tuKf = 0.0;
+    private double tuKf = 0.001;
     private static final double tuKv = 0.00;
 
     private double lastTuTarget = 0.0;
