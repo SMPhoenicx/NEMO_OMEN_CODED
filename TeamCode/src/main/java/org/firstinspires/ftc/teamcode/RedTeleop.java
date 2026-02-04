@@ -140,8 +140,8 @@ public class RedTeleop extends LinearOpMode {
     private double overrideTime = 0.0;
 
     // Spindexer Positions
-    private double spindexeroffset = -40;
-    private double SPINDEXER_POSITION = spindexerOffset;
+    private double spindexeroffset = -80;
+    private double SPINDEXER_POSITION = 0;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
     private int prevSpindexerIndex = 0;
@@ -345,7 +345,12 @@ public class RedTeleop extends LinearOpMode {
             if (gamepad2.crossWasPressed()) {
                 flyOn = !flyOn;
             }
-
+            if (gamepad2.squareWasPressed()) {
+                spindexeroffset -= 4;
+            }
+            if (gamepad2.crossWasPressed()) {
+                spindexeroffset += 4;
+            }
             // Voltage Compensation
             double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
             double baseF = 12.0 / 2450.0;
