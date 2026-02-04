@@ -446,7 +446,7 @@ public class RedTeleop extends LinearOpMode {
                 transfer.setPower(0);
                 if (gamepad2.dpadLeftWasPressed()) {
                     currentIndex -= 1;
-                    colors = addX(0, colors, colors[2]);
+                    colors = addX(3, colors, colors[2]);
                     colors = remove(colors, 3);
                     SPINDEXER_POSITION -= 60;
                 }
@@ -631,16 +631,17 @@ public class RedTeleop extends LinearOpMode {
     public static char[] addX(int n, char arr[], char x)
     {
 
-        char newarr[] = new char[n + 1];
+        char newarr[] = new char[arr.length + 1];
 
         // insert the elements from
         // the old array into the new array
         // insert all elements till n
         // then insert x at n+1
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n - 1; i++)
             newarr[i] = arr[i];
-
-        newarr[n] = x;
+        for (int i = n; i< arr.length + 1; i++){
+            newarr[i] = arr[i-1];
+        }
 
         return newarr;
     }
