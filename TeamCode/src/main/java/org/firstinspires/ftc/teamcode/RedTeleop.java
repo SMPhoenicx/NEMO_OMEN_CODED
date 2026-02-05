@@ -594,7 +594,7 @@ public class RedTeleop extends LinearOpMode {
             telemetry.addData("colors: ", colors[2]);
             telemetry.addData("x:", robotPose.getX());
             telemetry.addData("y", robotPose.getY());
-            telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed);
+            telemetry.addData("Flywheel Speed Target", "%.0f", flySpeed+flyOffset);
             telemetry.addData("Flymeasure: ", measuredVelocity);
             telemetry.addData("Hood Angle", "%.1f°", hood.getPosition());
             telemetry.addData("Hood Target: ", hoodAngle + hoodOffset);
