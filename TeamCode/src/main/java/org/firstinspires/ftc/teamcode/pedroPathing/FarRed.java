@@ -1,26 +1,18 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
-import android.graphics.Color;
-import android.util.Size;
-
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.FuturePose;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.ftc.PoseConverter;
 import com.pedropathing.ftc.InvertedFTCCoordinates;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -33,26 +25,16 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.State;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.GlobalOffsets;
 import org.firstinspires.ftc.teamcode.FlywheelPIDController;
 import org.firstinspires.ftc.teamcode.StateVars;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Autonomous(name="Far Red", group="Robot")
 public class FarRed extends LinearOpMode {
@@ -106,9 +88,9 @@ public class FarRed extends LinearOpMode {
     private static final double[] HOOD_ANGLES = {0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.8, 0.8};
     //SENSOR
     private GoBildaPinpointDriver pinpoint = null;
-    private AnalogInput spinEncoder;
+    private AnalogInput spinEncoder = null;
     private static final int LOCALIZATION_SAMPLE_COUNT = 7;
-    private AnalogInput turretEncoder;
+    private AnalogInput turretEncoder = null;
     private double smoothedRange = 0;
 
     //LIMELIGHT
@@ -135,7 +117,7 @@ public class FarRed extends LinearOpMode {
 
     // Control Parameters
     private boolean turretAtTarget = false;
-    private final double tuToleranceDeg = 2.0;
+    private final double tuToleranceDeg = 5.0;
     private final double tuDeadband = 0.02;
 
     //Ball tracking
@@ -187,10 +169,10 @@ public class FarRed extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.0084;
+    private double tuKp = 0.01;
     private double tuKi = 0;
-    private double tuKd = 0.0004;
-    private double tuKf = 0;
+    private double tuKd = 0.0007;
+    private double tuKf = 0.001;
     private final PathConstraints shootConstraints = new PathConstraints(0.99, 100, 0.75, 0.8);
 
     // Carousel PID State
@@ -224,7 +206,11 @@ public class FarRed extends LinearOpMode {
     private static final double tuKv = 0; // start small
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
-    private double turretTrackingOffset = 93;
+    double targetVelDegPerSec = 0;
+    private double turretTrackingOffset = -12;
+    double rawTurretTargetDeg = tuPos;
+    double safeTurretTargetDeg = 0;
+
     private double lastTurretEncoder = 0;
     private static final double TURRET_TRACKING_GAIN = 0.2;
     private static final double TURRET_DERIVATIVE_GAIN = 0.8;
@@ -252,7 +238,7 @@ public class FarRed extends LinearOpMode {
     private static final double goalY = 72;
 
     public void createPoses() {
-        startPose = new Pose(123.9, 123.5, Math.toRadians(34));
+        startPose = new Pose(88, 8, Math.toRadians(90));
 
         //0 is control point, 1 is endpoint
         pickup1[0] = new Pose(100, 36, Math.toRadians(0));
@@ -269,74 +255,76 @@ public class FarRed extends LinearOpMode {
         movePoint = new Pose(31, 69.6, Math.toRadians(90));
     }
 
-    public void createPaths() {
+    public void createPaths(){
         scorePath0 = follower.pathBuilder()
+                .addPath(new BezierLine(startPose,shoot1))
                 .setConstraints(shootConstraints)
-                .setLinearHeadingInterpolation(startPose.getHeading(), shoot1.getHeading(), 0.65)
-                .addParametricCallback(0.75, () -> {
-                    follower.setMaxPower(0.9);
+                .setConstantHeadingInterpolation(shoot1.getHeading())
+                .addParametricCallback(0.87,()-> {
+                    shootReady=true;
                 })
-                .addParametricCallback(0.87, () -> shootReady = true)
                 .build();
         pickupPath1 = follower.pathBuilder()
-                .addPath(new BezierCurve(shoot1, pickup1[0], pickup1[1]))
+                .addPath(new BezierCurve(shoot1,pickup1[0],pickup1[1]))
                 .setConstantHeadingInterpolation(shoot1.getHeading())
-                .addParametricCallback(0.15, () -> {
-                    follower.setMaxPower(0.3);
+                .addParametricCallback(0.2,()->{
+                    follower.setMaxPower(0.33);
                     intakeOn = true;
-                    pidKp -= 0.002;
-                    pidKd += 0.0004;
+                    pidKp -= 0.0015;
                 })
                 .setTimeoutConstraint(500)
                 .build();
         pickupPath2 = follower.pathBuilder()
-                .addPath(new BezierCurve(shoot1, pickup2[0], pickup2[1]))
+                .addPath(new BezierCurve(shoot1,pickup2[0],pickup2[1]))
                 .setConstantHeadingInterpolation(shoot1.getHeading())
-                .addParametricCallback(0.38, () -> {
-                    follower.setMaxPower(0.3);
+                .addParametricCallback(0.35,()->{
+                    follower.setMaxPower(0.36);
                     intakeOn = true;
-                    pidKp -= 0.002;
-                    pidKd += 0.0004;
+                    pidKp -= 0.0015;
                 })
                 .setTimeoutConstraint(500)
                 .build();
         pickupPath3 = follower.pathBuilder()
-                .addPath(new BezierCurve(shoot1, pickup3[0], pickup3[1]))
+                .addPath(new BezierCurve(shoot1,pickup3[0],pickup3[1]))
                 .setConstantHeadingInterpolation(shoot1.getHeading())
-                .addParametricCallback(0.45, () -> {
-                    follower.setMaxPower(0.3);
+                .addParametricCallback(0.33,()->{
+                    follower.setMaxPower(0.26);
                     intakeOn = true;
-                    pidKp -= 0.002;
-                    pidKd += 0.0004;
+                    pidKp -= 0.0015;
                 })
                 .setTimeoutConstraint(500)
                 .build();
         scorePath1 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup1[1], shoot1))
+                .addPath(new BezierLine(pickup1[1],shoot1))
                 .setConstraints(shootConstraints)
-                .setLinearHeadingInterpolation(pickup1[1].getHeading(), shoot1.getHeading())
-                .addParametricCallback(0.983, () -> shootReady = true)
+                .setConstantHeadingInterpolation(shoot1.getHeading())
+                .addParametricCallback(0.5,()-> {
+                    follower.setMaxPower(0.7);
+                })
+                .addParametricCallback(0.983,()-> shootReady=true)
                 .build();
         scorePath2 = follower.pathBuilder()
-                .addPath(new BezierCurve(pickup2[1], shoot1))
+                .addPath(new BezierLine(pickup2[1],shoot1))
                 .setConstraints(shootConstraints)
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
-                .addParametricCallback(0.986, () -> shootReady = true)
+                .addParametricCallback(0.5,()-> {
+                    follower.setMaxPower(0.7);
+                })
+                .addParametricCallback(0.99,()-> shootReady=true)
                 .build();
         scorePath3 = follower.pathBuilder()
-                .addPath(new BezierLine(pickup3[1], shoot1))
+                .addPath(new BezierLine(pickup3[1],shoot1))
                 .setConstraints(shootConstraints)
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
-                .addParametricCallback(0.8, () -> {
-                            follower.setMaxPower(0.85);
-                        }
-                )
-                .addParametricCallback(0.99, () -> shootReady = true)
+                .addParametricCallback(0.4,()-> {
+                    follower.setMaxPower(0.5);
+                })
+                .addParametricCallback(0.99,()-> shootReady=true)
                 .build();
         moveScore = follower.pathBuilder()
-                .addPath(new BezierLine(shoot1, movePoint))
+                .addPath(new BezierLine(shoot1,movePoint))
                 .setLinearHeadingInterpolation(shoot1.getHeading(), movePoint.getHeading())
                 .build();
     }
@@ -373,7 +361,7 @@ public class FarRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 1100;
+        double flySpeed = 1200;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -398,9 +386,10 @@ public class FarRed extends LinearOpMode {
         transfer = hardwareMap.get(DcMotor.class, "transfer");
         spin = hardwareMap.get(CRServo.class, "spin");
         hood = hardwareMap.get(Servo.class, "hood");
-        spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turret1 = hardwareMap.get(CRServo.class, "turret1");
         turret2 = hardwareMap.get(CRServo.class, "turret2");
+
+        spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turretEncoder = hardwareMap.get(AnalogInput.class, "turretEncoder");
 
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -409,7 +398,6 @@ public class FarRed extends LinearOpMode {
         backRight.setDirection(DcMotor.Direction.REVERSE);
 
         fly1.setDirection(DcMotor.Direction.FORWARD);
-        fly2.setDirection(DcMotor.Direction.FORWARD);
         fly2.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.REVERSE);
 
@@ -490,18 +478,20 @@ public class FarRed extends LinearOpMode {
                 switch(pathState){
                     //region CYCLE ZERO (READ MOTIF)
                     case 0:
+//                        if(subState==0){
+//                            follower.followPath(scorePath0,true);
+////                            motifOn = true;
+//
+//                            timeout = runtime.milliseconds()+500;
+//                            subState++;
+//                        }
                         if(subState==0){
-                            follower.followPath(scorePath0,true);
-//                            motifOn = true;
-
-                            timeout = runtime.milliseconds()+500;
+                            timeout=runtime.milliseconds()+1000;
                             subState++;
                         }
                         //READ MOTIF is subState 1
-                        else if(subState==1){
-                            tuPos = -78;
-                            transfer.setPower(1);
-                            spin.setPower(1);
+                        if(subState==1){
+                            tuPos = 90;
                             autoShootOn = true;
                             shootingState=0;
 
@@ -727,7 +717,7 @@ public class FarRed extends LinearOpMode {
 
             //region AUTO SHOOTING
             //prevent ball not firing
-            if(autoShootOn&&shootingState==1&&CarouselAtTarget) transOn = true;
+//            if(autoShootOn&&shootingState==1&&CarouselAtTarget) transOn = true;
 
             if(autoShootOn&&runtime.milliseconds()>timeout&&(shootReady||!follower.isBusy())){
                 intake.setPower(0);
@@ -774,7 +764,19 @@ public class FarRed extends LinearOpMode {
             //endregion
 
             //region TURRET
-            updateTurretPID(tuPos, dtSec);
+            if (!lastTuTargetInit) {
+                lastTuTarget = safeTurretTargetDeg;
+                lastTuTargetInit = true;
+            } else if (trackingOn) {
+                double dTarget = normalizeDeg180(safeTurretTargetDeg - lastTuTarget);
+                targetVelDegPerSec = dTarget / Math.max(dtSec, 1e-3);
+                lastTuTarget = safeTurretTargetDeg;
+            } else {
+                // no FF when not tracking
+                targetVelDegPerSec = 0.0;
+                lastTuTarget = safeTurretTargetDeg;
+            }
+            updateTurretPIDWithTargetFF(tuPos, targetVelDegPerSec, dtSec);
             //endregion
 
             //region TRANSFER
@@ -802,6 +804,7 @@ public class FarRed extends LinearOpMode {
             telemetry.addData("actual fly speed","Wheel 1: %.1f Wheel 2: %.1f", fly1.getVelocity(), fly2.getVelocity());
             telemetry.addData("Carousel pos",carouselIndex);
             telemetry.addData("Carousel at target",CarouselAtTarget);
+            telemetry.addData("Turret at target",turretAtTarget);
             telemetry.update();
             //endregion
         }
@@ -976,61 +979,6 @@ public class FarRed extends LinearOpMode {
     }
     //endregion
 
-    private void updateTurretPID(double targetAngle, double dt) {
-        // read angles 0..360
-        double angle = mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29);
-
-        //raw error
-        double rawError = -angleError(targetAngle, angle);
-
-        //adds a constant term if it's in a certain direction.
-        // we either do this or we change the pid values for each direction.
-        // gonna try and see if simpler method works tho
-        double compensatedTarget = targetAngle;
-        if (rawError < 0) { // moving CCW
-            compensatedTarget = (targetAngle) % 360.0;
-        }
-        // compute shortest signed error [-180,180]
-        double error = -angleError(compensatedTarget, angle);
-
-        // integral with anti-windup
-        tuIntegral += error * dt;
-        tuIntegral = clamp(tuIntegral, -tuIntegralLimit, tuIntegralLimit);
-
-        // derivative
-        double d = (error - tuLastError) / Math.max(dt, 1e-6);
-
-        // PIDF output (interpreted as servo power)
-        double out = tuKp * error + tuKi * tuIntegral + tuKd * d;
-
-        // small directional feedforward to overcome stiction when error significant
-        if (Math.abs(error) > 1.0) out += tuKf * Math.signum(error);
-
-        // clamp to [-1,1] and apply deadband
-        out = Range.clip(out, -1.0, 1.0);
-        if (Math.abs(out) < tuDeadband) out = 0.0;
-
-        // if within tolerance, zero outputs and decay integrator to avoid bumping
-        if (Math.abs(error) <= tuToleranceDeg) {
-            out = 0.0;
-            tuIntegral *= 0.2;
-        }
-
-        //to know its set
-        turretAtTarget = (Math.abs(error) <= tuToleranceDeg + 5);
-
-        // apply powers (flip one if your servo is mirrored - change sign if needed)
-        turret1.setPower(out);
-        turret2.setPower(out);
-
-        // store errors for next derivative calculation
-        tuLastError = error;
-
-        // telemetry for PID (keeps concise, add more if you want)
-        telemetry.addData("Turret Target", "%.1f°", targetAngle);
-
-    }
-
     private int readMotif(){
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         int numTags=0;
@@ -1111,6 +1059,63 @@ public class FarRed extends LinearOpMode {
             if(savedBalls[i]=='n') return false;
         }
         return true;
+    }
+
+    private double normalizeDeg180(double deg) {
+        deg = (deg + 180) % 360;
+        if (deg < 0) deg += 360;
+        return deg - 180;
+    }
+    private void updateTurretPIDWithTargetFF(double targetAngle, double targetVelDegPerSec, double dt) {
+        double angle = getTurretAngleDeg();
+
+        double error = -angleError(targetAngle, angle);
+
+        tuIntegral += error * dt;
+        tuIntegral = clamp(tuIntegral, -tuIntegralLimit, tuIntegralLimit);
+
+        double d = (error - tuLastError) / Math.max(dt, 1e-6);
+
+        double out = -1*tuKp * error + -1*tuKi * tuIntegral + -1*tuKd * d;
+
+        // stiction FF
+        if (Math.abs(error) > 1.0) out += tuKf * Math.signum(error);
+
+        // target-rate FF (helps match d(turret)/d(target))
+        out += tuKv * targetVelDegPerSec;
+
+        out = Range.clip(out, -1.0, 1.0);
+        if (Math.abs(out) < tuDeadband) out = 0.0;
+
+        if (Math.abs(error) <= tuToleranceDeg) {
+            out = 0.0;
+            tuIntegral *= 0.2;
+        }
+
+        turret1.setPower(out);
+        turret2.setPower(out);
+
+        tuLastError = error;
+
+    }
+    private double getTurretAngleDeg() {
+        return normalizeDeg180(mapVoltageToAngle360(turretEncoder.getVoltage(), 0.01, 3.29));
+    }
+    private double applyTurretLimitWithWrap(double desiredDeg) {
+        // Always reason in [-180, 180]
+        desiredDeg = normalizeDeg180(desiredDeg);
+
+        // Where the turret actually is right now (also [-180, 180])
+        double currentDeg = getTurretAngleDeg()+turretTrackingOffset;
+
+        // Shortest signed rotation from current to desired (e.g. +20, -30, etc.)
+        double errorToDesired = normalizeDeg180(desiredDeg - currentDeg);
+
+        // "Ideal" next target if we perfectly matched desired in one step
+        double candidateDeg = currentDeg + errorToDesired;
+
+        // Hard safety clamp to keep off the wires
+        return clamp(candidateDeg, -TURRET_LIMIT_DEG, TURRET_LIMIT_DEG);
     }
 //    private void initAprilTag() {
 //
