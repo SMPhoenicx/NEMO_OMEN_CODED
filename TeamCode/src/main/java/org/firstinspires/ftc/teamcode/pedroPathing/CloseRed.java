@@ -136,7 +136,7 @@ public class CloseRed extends LinearOpMode {
 
     // Control Parameters
     private boolean turretAtTarget = false;
-    private final double tuToleranceDeg = 2.0;
+    private final double tuToleranceDeg = 3.0;
     private final double tuDeadband = 0.02;
 
     //Ball tracking

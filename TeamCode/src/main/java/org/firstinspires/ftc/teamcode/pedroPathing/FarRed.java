@@ -18,6 +18,7 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -116,7 +117,7 @@ public class FarRed extends LinearOpMode {
     //End Region
 
     // Control Parameters
-    private boolean turretAtTarget = false;
+    private boolean turretAtTarget = true;
     private final double tuToleranceDeg = 5.0;
     private final double tuDeadband = 0.02;
 
@@ -399,7 +400,7 @@ public class FarRed extends LinearOpMode {
 
         fly1.setDirection(DcMotor.Direction.FORWARD);
         fly2.setDirection(DcMotor.Direction.FORWARD);
-        intake.setDirection(DcMotor.Direction.REVERSE);
+        intake.setDirection(DcMotor.Direction.FORWARD);
 
         spin.setDirection(CRServo.Direction.FORWARD);
         hood.setDirection(Servo.Direction.FORWARD);
@@ -486,7 +487,7 @@ public class FarRed extends LinearOpMode {
 //                            subState++;
 //                        }
                         if(subState==0){
-                            timeout=runtime.milliseconds()+1000;
+                            timeout=runtime.milliseconds()+4000;
                             subState++;
                         }
                         //READ MOTIF is subState 1
@@ -679,7 +680,6 @@ public class FarRed extends LinearOpMode {
             //(angles must be negative for our direction)
             hood.setPosition((hoodAngle + hoodOffset)/355.0);
             //endregion
-
             //region CAROUSEL
             double targetAngle = CAROUSEL_POSITIONS[carouselIndex];
             if(!cutoffCarsPID){
@@ -726,8 +726,7 @@ public class FarRed extends LinearOpMode {
                 if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
-                        turret1.setPower(0.86);
-                        turret2.setPower(0.86);
+                        spin.setPower(0.26);
                         cutoffCarsPID = true;
 
                         timeout=runtime.milliseconds()+900;
@@ -892,8 +891,7 @@ public class FarRed extends LinearOpMode {
             lastError = 0;
             lastFilteredD = 0;
             integral = 0;
-            turret1.setPower(0);
-            turret2.setPower(0);
+            spin.setPower(0);
             CarouselPidArmed = true;
             return;
         }
@@ -935,8 +933,7 @@ public class FarRed extends LinearOpMode {
 
         CarouselAtTarget = (Math.abs(error) <= positionToleranceDeg+15);
 
-        turret1.setPower(out);
-        turret2.setPower(out);
+        spin.setPower(out);
 
         lastError = error;
 
