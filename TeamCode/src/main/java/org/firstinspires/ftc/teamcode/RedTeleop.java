@@ -141,6 +141,7 @@ public class RedTeleop extends LinearOpMode {
 
     // Spindexer Positions
     private double spindexeroffset = -60;
+    private double targetAngle = 0;
     private double SPINDEXER_POSITION = 0;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
@@ -427,6 +428,7 @@ public class RedTeleop extends LinearOpMode {
                     if (transOn) {
                         spindexerIndex += 90;
                     } else {
+                        spindexerIndex -=90;
                         spindexeroffset = -60;
                     }
                 }
@@ -478,15 +480,19 @@ public class RedTeleop extends LinearOpMode {
                     transfer.setPower(-1);
                 }
                 timer = runtime.milliseconds();
+                targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
+                targetAngle = targetAngle%180; //what
+
+                updateSpindexerPID(targetAngle, dtSec);
             }
             else{
 
                 gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
                 if (currentshot == 'n') {
-                    if (runtime.milliseconds() - timer > 160) {
+                    if (runtime.milliseconds() - timer > 100) {
                         transfer.setPower(1);
-                        spindexeroffset += 10;
+                        spindexeroffset += 60;
                         colors = addX(3, colors, colors[0]);
                         colors = remove(colors, 0);
                         currentIndex += 1;
@@ -494,11 +500,8 @@ public class RedTeleop extends LinearOpMode {
                         timer = runtime.milliseconds();
                     }
                 }
+                spin.setPower(0.4);
             }
-            double targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
-            targetAngle = targetAngle%180; //what
-
-            updateSpindexerPID(targetAngle, dtSec);
             //endregion
 
             //region TURRET
