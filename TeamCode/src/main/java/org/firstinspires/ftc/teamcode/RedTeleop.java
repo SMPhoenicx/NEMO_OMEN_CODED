@@ -451,12 +451,12 @@ public class RedTeleop extends LinearOpMode {
 //                }
                 gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
-                if (gamepad2.dpadLeftWasPressed()) {
-                    currentIndex -= 1;
-                    colors = addX(3, colors, colors[2]);
-                    colors = remove(colors, 3);
-                    SPINDEXER_POSITION -= 60;
-                }
+//                if (gamepad2.dpadLeftWasPressed()) {
+//                    currentIndex -= 1;
+//                    colors = addX(3, colors, colors[2]);
+//                    colors = remove(colors, 3);
+//                    SPINDEXER_POSITION -= 60;
+//                }
                 if (gamepad2.dpadRightWasPressed()) {
                     SPINDEXER_POSITION += 60;
                     colors = addX(3, colors, colors[0]);
