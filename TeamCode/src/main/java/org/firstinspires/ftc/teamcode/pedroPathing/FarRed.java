@@ -118,7 +118,7 @@ public class FarRed extends LinearOpMode {
 
     // Control Parameters
     private boolean turretAtTarget = true;
-    private final double tuToleranceDeg = 5.0;
+    private final double tuToleranceDeg = 2.0;
     private final double tuDeadband = 0.02;
 
     //Ball tracking
@@ -170,7 +170,7 @@ public class FarRed extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.01;
+    private double tuKp = 0.02;
     private double tuKi = 0;
     private double tuKd = 0.0007;
     private double tuKf = 0.001;
@@ -269,7 +269,7 @@ public class FarRed extends LinearOpMode {
                 .addPath(new BezierCurve(shoot1,pickup1[0],pickup1[1]))
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.2,()->{
-                    follower.setMaxPower(0.33);
+                    follower.setMaxPower(0.7);
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -279,7 +279,7 @@ public class FarRed extends LinearOpMode {
                 .addPath(new BezierCurve(shoot1,pickup2[0],pickup2[1]))
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.35,()->{
-                    follower.setMaxPower(0.36);
+                    follower.setMaxPower(0.7);
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -289,7 +289,7 @@ public class FarRed extends LinearOpMode {
                 .addPath(new BezierCurve(shoot1,pickup3[0],pickup3[1]))
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.33,()->{
-                    follower.setMaxPower(0.26);
+                    follower.setMaxPower(0.7);
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -487,7 +487,7 @@ public class FarRed extends LinearOpMode {
 //                            subState++;
 //                        }
                         if(subState==0){
-                            timeout=runtime.milliseconds()+4000;
+                            timeout=runtime.milliseconds()+2000;
                             subState++;
                         }
                         //READ MOTIF is subState 1
@@ -534,7 +534,7 @@ public class FarRed extends LinearOpMode {
                         }
                         //INTAKE is subState 1
                         else if(subState==2){
-                            follower.setMaxPower(1);
+                            follower.setMaxPower(0.7);
                             follower.followPath(scorePath2,true);
                             tuPos += 3;
                             autoShootOn = true;
@@ -555,7 +555,7 @@ public class FarRed extends LinearOpMode {
                         }
                         //INTAKE is subState 1
                         else if(subState==2){
-                            follower.setMaxPower(1);
+                            follower.setMaxPower(0.7);
                             follower.followPath(scorePath3,true);
                             tuPos += 2;
                             autoShootOn = true;
@@ -783,7 +783,7 @@ public class FarRed extends LinearOpMode {
                 transfer.setPower(1);
             }
             else{
-                transfer.setPower(0);
+                transfer.setPower(-0.4);
             }
 
             //endregion
