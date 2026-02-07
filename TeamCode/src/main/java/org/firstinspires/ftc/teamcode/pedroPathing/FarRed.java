@@ -52,9 +52,9 @@ public class FarRed extends LinearOpMode {
     //region PEDRO VARS
     private Follower follower;
     private Pose startPose, shoot1, movePoint;
-    private Pose[] pickup1 = new Pose[3];
-    private Pose[] pickup2 = new Pose[3];
-    private Pose[] pickup3 = new Pose[3];
+    private Pose[] pickup1 = new Pose[5];
+    private Pose[] pickup2 = new Pose[5];
+    private Pose[] pickup3 = new Pose[5];
     private PathChain scorePath0, scorePath1, scorePath2, scorePath3, moveScore, pickupPath1, pickupPath2, pickupPath3;
     //endregion
 
@@ -170,14 +170,14 @@ public class FarRed extends LinearOpMode {
     private double integralLimit = 500.0;
     private double pidLastTimeMs = 0.0;
     private double localizeTime = 0;
-    private double tuKp = 0.02;
+    private double tuKp = 0.01;
     private double tuKi = 0;
     private double tuKd = 0.0007;
     private double tuKf = 0.001;
     private final PathConstraints shootConstraints = new PathConstraints(0.99, 100, 0.75, 0.8);
 
     // Carousel PID State
-    private double tuLastTimeMs = 0.0;
+    private double tuLastTimeMs = 0.0; 
     //region LOCALIZATION DEBUG
     private double lastLocalizeRange = 0;
     private double lastLocalizeBearingRaw = 0;
@@ -235,24 +235,26 @@ public class FarRed extends LinearOpMode {
 
     private static final double TURRET_LIMIT_DEG = 270;
     private ElapsedTime runtime = new ElapsedTime();
-    private static final double goalX = -72;
-    private static final double goalY = 72;
+    private static double goalX = 147;
+    private static final double goalY = 144;
 
     public void createPoses() {
         startPose = new Pose(88, 8, Math.toRadians(90));
 
         //0 is control point, 1 is endpoint
-        pickup1[0] = new Pose(100, 36, Math.toRadians(0));
-        pickup1[1] = new Pose(144, 36, Math.toRadians(0));
+        pickup1[0] = new Pose(88, 42, Math.toRadians(0));
+        pickup1[1] = new Pose(144, 42, Math.toRadians(0));
 
 
-        pickup2[0] = new Pose(88, 8, Math.toRadians(0));
-        pickup2[1] = new Pose(144, 8, Math.toRadians(0));
+        pickup2[0] = new Pose(88, 16, Math.toRadians(0));
+        pickup2[1] = new Pose(144, 16, Math.toRadians(0));
+        pickup2[2] = new Pose(120, 16, Math.toRadians(0));
+        pickup2[3] = new Pose(144, 16, Math.toRadians(0));
 
         pickup3[0] = new Pose(88, 8, Math.toRadians(0));
         pickup3[1] = new Pose(144, 8, Math.toRadians(0));
 
-        shoot1 = new Pose(88, 8, Math.toRadians(90));
+        shoot1 = new Pose(88, 14, Math.toRadians(90));
         movePoint = new Pose(31, 69.6, Math.toRadians(90));
     }
 
@@ -267,19 +269,19 @@ public class FarRed extends LinearOpMode {
                 .build();
         pickupPath1 = follower.pathBuilder()
                 .addPath(new BezierCurve(shoot1,pickup1[0],pickup1[1]))
-                .setConstantHeadingInterpolation(shoot1.getHeading())
+                .setConstantHeadingInterpolation(pickup1[0].getHeading())
                 .addParametricCallback(0.2,()->{
-                    follower.setMaxPower(0.7);
+                    follower.setMaxPower(0.7);;
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
                 .setTimeoutConstraint(500)
                 .build();
         pickupPath2 = follower.pathBuilder()
-                .addPath(new BezierCurve(shoot1,pickup2[0],pickup2[1]))
-                .setConstantHeadingInterpolation(shoot1.getHeading())
+                .addPath(new BezierCurve(shoot1,pickup2[0],pickup2[1],pickup2[2],pickup2[3]))
+                .setConstantHeadingInterpolation(pickup2[0].getHeading())
                 .addParametricCallback(0.35,()->{
-                    follower.setMaxPower(0.7);
+                    follower.setMaxPower(0.7);;
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -287,9 +289,9 @@ public class FarRed extends LinearOpMode {
                 .build();
         pickupPath3 = follower.pathBuilder()
                 .addPath(new BezierCurve(shoot1,pickup3[0],pickup3[1]))
-                .setConstantHeadingInterpolation(shoot1.getHeading())
+                .setConstantHeadingInterpolation(pickup3[0].getHeading())
                 .addParametricCallback(0.33,()->{
-                    follower.setMaxPower(0.7);
+                    follower.setMaxPower(0.9);
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -300,7 +302,7 @@ public class FarRed extends LinearOpMode {
                 .setConstraints(shootConstraints)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.5,()-> {
-                    follower.setMaxPower(0.7);
+                    follower.setMaxPower(0.7);;
                 })
                 .addParametricCallback(0.983,()-> shootReady=true)
                 .build();
@@ -310,7 +312,7 @@ public class FarRed extends LinearOpMode {
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.5,()-> {
-                    follower.setMaxPower(0.7);
+                    follower.setMaxPower(0.7);;
                 })
                 .addParametricCallback(0.99,()-> shootReady=true)
                 .build();
@@ -320,7 +322,7 @@ public class FarRed extends LinearOpMode {
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.4,()-> {
-                    follower.setMaxPower(0.5);
+                    follower.setMaxPower(0.7);;
                 })
                 .addParametricCallback(0.99,()-> shootReady=true)
                 .build();
@@ -362,7 +364,7 @@ public class FarRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 1200;
+        double flySpeed = 880;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -457,6 +459,7 @@ public class FarRed extends LinearOpMode {
 
         while(opModeIsActive()) {
             follower.update();
+            Pose robotPose = follower.getPose();
             StateVars.lastPose = follower.getPose();
 
             //region IMPORTANT VARS
@@ -487,7 +490,7 @@ public class FarRed extends LinearOpMode {
 //                            subState++;
 //                        }
                         if(subState==0){
-                            timeout=runtime.milliseconds()+2000;
+                            timeout=runtime.milliseconds()+4000;
                             subState++;
                         }
                         //READ MOTIF is subState 1
@@ -507,15 +510,17 @@ public class FarRed extends LinearOpMode {
                         if(subState==0){
                             spin.setPower(0);
                             transfer.setPower(0);
+                            autoShootOn = false;
+                            goalX = 144;
+                            transOn = false;
                             follower.followPath(pickupPath1,false);
-
                             flySpeed += shoot0change;
 
                             subState++;
                         }
                         else if(subState==2){
                             follower.followPath(scorePath1,true);
-                            transOn = true;
+                            //transOn = true;
                             autoShootOn = true;
                             shootingState=0;
 
@@ -529,12 +534,12 @@ public class FarRed extends LinearOpMode {
                     case 2:
                         if(subState==0){
                             follower.followPath(pickupPath2,false);
-
+                            autoShootOn = false;
+                            transOn = false;
                             subState++;
                         }
                         //INTAKE is subState 1
                         else if(subState==2){
-                            follower.setMaxPower(0.7);
                             follower.followPath(scorePath2,true);
                             tuPos += 3;
                             autoShootOn = true;
@@ -555,7 +560,6 @@ public class FarRed extends LinearOpMode {
                         }
                         //INTAKE is subState 1
                         else if(subState==2){
-                            follower.setMaxPower(0.7);
                             follower.followPath(scorePath3,true);
                             tuPos += 2;
                             autoShootOn = true;
@@ -726,10 +730,10 @@ public class FarRed extends LinearOpMode {
                 if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
-                        spin.setPower(0.26);
+                        spin.setPower(0.2);
                         cutoffCarsPID = true;
 
-                        timeout=runtime.milliseconds()+900;
+                        timeout=runtime.milliseconds()+3000;
                         shootingState++;
                     }
                 }
@@ -763,6 +767,11 @@ public class FarRed extends LinearOpMode {
             //endregion
 
             //region TURRET
+            tuPos = calcTuTarget(
+                    robotPose.getX(),
+                    robotPose.getY(),
+                    robotPose.getHeading()
+                            + Math.toRadians(turretTrackingOffset));
             if (!lastTuTargetInit) {
                 lastTuTarget = safeTurretTargetDeg;
                 lastTuTargetInit = true;
@@ -820,7 +829,21 @@ public class FarRed extends LinearOpMode {
         }
         return 'n';
     }
+    private double calcTuTarget(double robotX, double robotY, double robotHeadingRad) {
+        double dx = goalX - robotX;
+        double dy = goalY - robotY;
 
+        double headingToGoal = Math.toDegrees(Math.atan2(dy, dx));
+        double robotHeading  = Math.toDegrees(robotHeadingRad);
+
+        //actual turret angle needed
+        double turretAngleReal = headingToGoal - robotHeading;
+
+        //converts to angle servos need to turn to to achieve turret angle
+        double servoAngle = turretZeroDeg + (((double) 83 /40) * turretAngleReal);
+
+        return normalizeDeg180(servoAngle);
+    }
     private char getDetectedcolor(NormalizedColorSensor sensor){
         double dist = ((DistanceSensor) sensor).getDistance(DistanceUnit.CM);
         if (Double.isNaN(dist) || dist > GlobalOffsets.colorSensorDist1) {

@@ -500,7 +500,7 @@ public class RedTeleop extends LinearOpMode {
                         timer = runtime.milliseconds();
                     }
                 }
-                spin.setPower(0.4);
+                spin.setPower(0.6);
             }
             //endregion
 
