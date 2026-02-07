@@ -259,7 +259,7 @@ public class CloseRed extends LinearOpMode {
         pickup3[1] = new Pose(124,35.58,Math.toRadians(0));
 
         shoot1 = new Pose(66.5,68.4,Math.toRadians(0));
-//        shoot0 = new Pose(60,119,Math.toRadians(150));
+//      1  shoot0 = new Pose(60,119,Math.toRadians(150));
         movePoint = new Pose(144-31,69.6,Math.toRadians(90));
     }
 
