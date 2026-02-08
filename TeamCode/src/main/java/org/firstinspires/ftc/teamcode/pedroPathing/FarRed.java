@@ -177,7 +177,7 @@ public class FarRed extends LinearOpMode {
     private final PathConstraints shootConstraints = new PathConstraints(0.99, 100, 0.75, 0.8);
 
     // Carousel PID State
-    private double tuLastTimeMs = 0.0; 
+    private double tuLastTimeMs = 0.0;
     //region LOCALIZATION DEBUG
     private double lastLocalizeRange = 0;
     private double lastLocalizeBearingRaw = 0;
@@ -246,8 +246,8 @@ public class FarRed extends LinearOpMode {
         pickup1[1] = new Pose(144, 42, Math.toRadians(0));
 
 
-        pickup2[0] = new Pose(88, 16, Math.toRadians(0));
-        pickup2[1] = new Pose(144, 16, Math.toRadians(0));
+        pickup2[0] = new Pose(88, 10, Math.toRadians(0));
+        pickup2[1] = new Pose(144, 10, Math.toRadians(0));
         pickup2[2] = new Pose(120, 16, Math.toRadians(0));
         pickup2[3] = new Pose(144, 16, Math.toRadians(0));
 
@@ -364,7 +364,7 @@ public class FarRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 880;
+        double flySpeed = 850;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -490,6 +490,7 @@ public class FarRed extends LinearOpMode {
 //                            subState++;
 //                        }
                         if(subState==0){
+//                            motifOn = true;
                             timeout=runtime.milliseconds()+4000;
                             subState++;
                         }
@@ -691,7 +692,7 @@ public class FarRed extends LinearOpMode {
             }
             //endregion
 
-//            //region SHOOT PREP
+            //region SHOOT PREP
 //            if(autoShootOn&&shootingState==0&&!motifOn){
 //                int greenIn=-1;
 //                for(int i=0;i<3;i++){

@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.util.Size;
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.math.Vector;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.lynx.LynxModule;
@@ -76,9 +77,21 @@ public class RedTeleop extends LinearOpMode {
     //region SHOOTING SYSTEM
     private double flyTargetSpeed = 0.0;
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 149.4, 165, 179.2, 194.8};
-    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 700, 720, 740, 770, 800, 1200, 1250, 1300};
-    private static final double[] HOOD_ANGLES=          {.1,.3,.5,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7};
+    private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 142.6, 149.4};
+    private static final double[] AIR_TIME =   {2.89, 2.89, 2.89, 2.89, 2.89, 3, 3.23, 3.5, 3.79, 4.27};  //seconds divide all by 4
+    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 720, 740, 770, 800, 830, 850};
+    private static final double[] HOOD_ANGLES=          {
+            136.6, // Old -40.9
+            107.5, // Old -70.0
+            104.2, // Old -73.3
+            94.2,  // Old -83.3
+            58.3,  // Old -119.2
+            55.1,  // Old -122.4
+            54.8,  // Old -122.7
+            51.5,  // Old -126.5
+            51.5,  // Old -126.5
+            46.9,  // Old -131.1
+    };;
 
     private boolean flyHoodLock = false;
     private double smoothedRange = 0;
@@ -98,7 +111,7 @@ public class RedTeleop extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
     private List<Pose> localizationSamples = new ArrayList<>();
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = -22;
 
     private static final double ALPHA = 0.8;
     //endregion
@@ -205,7 +218,7 @@ public class RedTeleop extends LinearOpMode {
         // Mechanism States
         boolean transOn = false;
         boolean intakeOn = false;
-        boolean flyOn = false;
+        boolean flyOn = true;
         boolean flyAtSpeed = false;
         boolean prevflyState = false;
 
@@ -213,6 +226,8 @@ public class RedTeleop extends LinearOpMode {
         double drive = 0;
         double strafe = 0;
         double turn = 0;
+        Vector velocity = new Vector(0,0);
+        double shotTime = 0;
 
         // Flywheel Control
         double flySpeed = 1400;
@@ -270,6 +285,7 @@ public class RedTeleop extends LinearOpMode {
                 hardwareMap.get(DcMotorEx.class, "fly1"),
                 hardwareMap.get(DcMotorEx.class, "fly2")
         );
+        flywheel.teleopMultiplier = 0.88;
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -294,30 +310,34 @@ public class RedTeleop extends LinearOpMode {
             //region PEDRO
             follower.update();
             Pose robotPose = follower.getPose();
+            velocity = follower.getVelocity();
             //endregion
 
             //region AUTO FLYSPEED/ANGLE
+            //position and range
             double dx = goalX - robotPose.getX();
             double dy = goalY - robotPose.getY();
             double odomRange = Math.hypot(dx, dy);
 
-            //smooth range so values rnt erratic
-            if (!isInitialized) {
-                smoothedRange = odomRange;
-                isInitialized = true;
-            } else {
-                smoothedRange = smooth(odomRange, smoothedRange);
-            }
+            //velocity
+            double velX = velocity.getXComponent();
+            double velY = velocity.getYComponent();
 
-            // can remove this with new system
-            if (smoothedRange > 70) {
-                flyKiOffset = 0.45;
-            } else if (smoothedRange < 40) {
-                flyKiOffset = -0.2;
-            } else {
-                flyKiOffset = 0.0;
-            }
+            //finds the unit vector in the direction of the goal
+            double unitVectorX = dx / odomRange;
+            double unitVectorY = dy / odomRange;
 
+            double totalSpeed = velocity.getMagnitude();
+
+            //gives you the velocity in the direction of the goal (radial velocity)
+            double radVel = (velX * unitVectorX) + (velY * unitVectorY);
+
+            double adjustedRange = odomRange;
+            if (Math.abs(radVel) > 5.0) { // threshold of 5 inches/second
+                shotTime = interpolate(odomRange, ODOM_RANGE_SAMPLES, AIR_TIME) / 4.0;
+                double radialDisplacement = radVel * shotTime;
+                adjustedRange = odomRange - radialDisplacement;
+            }
             // interpolate between measured values
             if (!flyHoodLock) {
                 flySpeed = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, FLY_SPEEDS);
@@ -390,14 +410,27 @@ public class RedTeleop extends LinearOpMode {
             //region HOOD CONTROL
             //position adjustments
             if (gamepad2.dpadUpWasPressed()) {
-                hoodOffset += 0.05;
+                hoodOffset += 5;
             }
             if (gamepad2.dpadDownWasPressed()) {
-                hoodOffset -= 0.05;
+                hoodOffset -= 5;
             }
 
-            //pid
-            hood.setPosition(hoodAngle + hoodOffset);
+            double recoilOffset = 0;
+
+            double flyDiff = (flySpeed + flyOffset) - flywheel.lastMeasuredVelocity;
+
+            if ((flyOn && transOn) && (Math.abs(flyDiff) > 40)) {
+                recoilOffset = flyDiff*0.28;
+            }
+            telemetry.addData("FLY DIFF", flyDiff);
+            telemetry.addData("RECOIL", recoilOffset);
+
+
+            double finalHoodAngle = clamp(hoodAngle + hoodOffset + recoilOffset, 26, 292.6);
+
+            // Update Hood PID
+            hood.setPosition((finalHoodAngle)/355.0);
             //endregion
 
             //region INTAKE CONTROL
@@ -485,7 +518,7 @@ public class RedTeleop extends LinearOpMode {
 
                 updateSpindexerPID(targetAngle, dtSec);
             }
-            else{
+            else if(flyOn){
 
                 gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
@@ -500,7 +533,7 @@ public class RedTeleop extends LinearOpMode {
                         timer = runtime.milliseconds();
                     }
                 }
-                spin.setPower(0.6);
+                spin.setPower(0.8);
             }
             //endregion
 
@@ -586,7 +619,7 @@ public class RedTeleop extends LinearOpMode {
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
             turn = gamepad1.right_stick_x;
-            moveRobot(1.5*drive, strafe, -turn);
+            moveRobot(drive, strafe*1.2, -turn);
             //endregion
 
             //region TELEMETRY

@@ -76,10 +76,9 @@ public class BlueTeleop extends LinearOpMode {
     //region SHOOTING SYSTEM
     private double flyTargetSpeed = 0.0;
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
-    private static final double[] ODOM_RANGE_SAMPLES =  {45.2, 50.2, 55.3, 60.9, 66.5, 72.2, 76.7, 81.1, 86.3, 90.9, 96.2, 101.7, 105.3, 109.9, 118.1, 128.5, 139.6, 148.7};
-    private static final double[] FLY_SPEEDS =          {1005, 1026, 1059, 1083, 1129, 1143, 1155, 1162, 1251, 1261, 1267, 1256, 1283, 1297, 1370, 1393, 1420, 1460};
-    private static final double[] HOOD_ANGLES=          {.1,.1,.1,.1,.1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-
+    private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 149.4, 165, 179.2, 194.8};
+    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 700, 720, 740, 770, 800, 1200, 1250, 1300};
+    private static final double[] HOOD_ANGLES=          {.1,.3,.5,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7,.7};
     private boolean flyHoodLock = false;
     private double smoothedRange = 0;
     //endregion
@@ -98,7 +97,7 @@ public class BlueTeleop extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
     private List<Pose> localizationSamples = new ArrayList<>();
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = -22;
 
     private static final double ALPHA = 0.8;
     //endregion
@@ -141,6 +140,7 @@ public class BlueTeleop extends LinearOpMode {
 
     // Spindexer Positions
     private double spindexeroffset = -50;
+    private double targetAngle = 0;
     private double SPINDEXER_POSITION = spindexerOffset;
     private final double[] SPINDEXER_POSITIONS = {112.5-13, 172.5-13, 232.5-13, 292.5-13, 352.5-13, 52.50-13};
     private int spindexerIndex = 0;
@@ -189,8 +189,8 @@ public class BlueTeleop extends LinearOpMode {
     //endregion
 
     //region VARIANT VARS (Alliance Specific)
-    private static final double goalX = 0;
-    private static final double goalY = 163;
+    private static final double goalX = -3;
+    private static final double goalY = 144;
     private static final int DESIRED_TAG_ID = 24; //blue=20, red=24
     private static final Pose LOCALIZE_POSE = new Pose(135, 8.9, Math.toRadians(0));
     private static final double TAG_X_PEDRO = 14.612;
@@ -204,7 +204,7 @@ public class BlueTeleop extends LinearOpMode {
         // Mechanism States
         boolean transOn = false;
         boolean intakeOn = false;
-        boolean flyOn = false;
+        boolean flyOn = true;
         boolean flyAtSpeed = false;
         boolean prevflyState = false;
 
@@ -215,7 +215,7 @@ public class BlueTeleop extends LinearOpMode {
 
         // Flywheel Control
         double flySpeed = 1400;
-        double flyOffset = -60;
+        double flyOffset = 60;
         double lastTime = 0;
 
         double intakePower = 0;
@@ -249,7 +249,6 @@ public class BlueTeleop extends LinearOpMode {
         color = hardwareMap.get(NormalizedColorSensor.class, "color");
         spinEncoder = hardwareMap.get(AnalogInput.class, "espin");
         turretEncoder = hardwareMap.get(AnalogInput.class, "turretEncoder");
-
         // DIRECTIONS
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         backLeft.setDirection(DcMotor.Direction.FORWARD);
@@ -269,6 +268,7 @@ public class BlueTeleop extends LinearOpMode {
                 hardwareMap.get(DcMotorEx.class, "fly1"),
                 hardwareMap.get(DcMotorEx.class, "fly2")
         );
+        flywheel.teleopMultiplier = 0.88;
         //MODES
         fly1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         fly2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -445,12 +445,12 @@ public class BlueTeleop extends LinearOpMode {
 //                }
                 gamepad2.setLedColor(1,0,0,200);
                 transfer.setPower(0);
-                if (gamepad2.dpadLeftWasPressed()) {
-                    currentIndex -= 1;
-                    colors = addX(0, colors, colors[2]);
-                    colors = remove(colors, 3);
-                    SPINDEXER_POSITION -= 60;
-                }
+//                if (gamepad2.dpadLeftWasPressed()) {
+//                    currentIndex -= 1;
+//                    colors = addX(3, colors, colors[2]);
+//                    colors = remove(colors, 3);
+//                    SPINDEXER_POSITION -= 60;
+//                }
                 if (gamepad2.dpadRightWasPressed()) {
                     SPINDEXER_POSITION += 60;
                     colors = addX(3, colors, colors[0]);
@@ -474,15 +474,19 @@ public class BlueTeleop extends LinearOpMode {
                     transfer.setPower(-1);
                 }
                 timer = runtime.milliseconds();
+                targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
+                targetAngle = targetAngle%180; //what
+
+                updateSpindexerPID(targetAngle, dtSec);
             }
-            else{
+            else if(flyOn){
 
                 gamepad2.setLedColor(0,1,0,200);
                 gamepad2.rumble(300);
                 if (currentshot == 'n') {
-                    if (runtime.milliseconds() - timer > 600) {
+                    if (runtime.milliseconds() - timer > 100) {
                         transfer.setPower(1);
-                        SPINDEXER_POSITION += 60;
+                        spindexeroffset += 60;
                         colors = addX(3, colors, colors[0]);
                         colors = remove(colors, 0);
                         currentIndex += 1;
@@ -490,11 +494,8 @@ public class BlueTeleop extends LinearOpMode {
                         timer = runtime.milliseconds();
                     }
                 }
+                spin.setPower(0.8);
             }
-            double targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
-            spindexeroffset = spindexeroffset%180; //what
-
-            updateSpindexerPID(targetAngle, dtSec);
             //endregion
 
             //region TURRET
@@ -506,7 +507,7 @@ public class BlueTeleop extends LinearOpMode {
                 lastTuTargetInit = false;
             }
             if (gamepad1.psWasPressed()){
-                follower.setPose(new Pose(135,9, Math.toRadians(0)));
+                follower.setPose(new Pose(136,8, Math.toRadians(0)));
             }            //region GOAL TRACKING
             if (trackingOn) {
                 tuPos = calcTuTarget(
@@ -579,7 +580,7 @@ public class BlueTeleop extends LinearOpMode {
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
             turn = gamepad1.right_stick_x;
-            moveRobot(1.5*drive, strafe, -turn);
+            moveRobot(drive, strafe*1.2, -turn);
             //endregion
 
             //region TELEMETRY
