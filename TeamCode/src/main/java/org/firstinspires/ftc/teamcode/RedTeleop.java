@@ -79,7 +79,7 @@ public class RedTeleop extends LinearOpMode {
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
     private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 142.6, 149.4};
     private static final double[] AIR_TIME =   {2.89, 2.89, 2.89, 2.89, 2.89, 3, 3.23, 3.5, 3.79, 4.27};  //seconds divide all by 4
-    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 720, 740, 770, 800, 830, 850};
+    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 720, 740, 770, 800, 830, 880};
     private static final double[] HOOD_ANGLES=          {
             136.6, // Old -40.9
             107.5, // Old -70.0
@@ -190,7 +190,9 @@ public class RedTeleop extends LinearOpMode {
     private double tuPos = 0.0;
 
     private static final double turretZeroDeg = 100;
-    private static final double TURRET_LIMIT_DEG = 270.0;
+    private static final double TURRET_LIMIT_DEGLOW = -90;
+
+    private static final double TURRET_LIMIT_DEGHIGH = 90;
     private double tuOffset = 0.0;
     //endregion
 
@@ -363,7 +365,7 @@ public class RedTeleop extends LinearOpMode {
                 hoodOffset = 0;
             }
             // Flywheel Toggle
-            if (gamepad2.crossWasPressed()) {
+            if (gamepad1.circleWasPressed()) {
                 flyOn = !flyOn;
             }
             if (gamepad2.squareWasPressed()) {
@@ -398,7 +400,7 @@ public class RedTeleop extends LinearOpMode {
                 led.setPosition(1); // white
             } else if (flyAtSpeed) {
                 if (prevflyState != flyAtSpeed) {
-                    gamepad1.rumble(300);
+                    //gamepad1.rumble(300);
                 }
                 led.setPosition(0.5); // blue
             } else {
@@ -434,16 +436,20 @@ public class RedTeleop extends LinearOpMode {
             //endregion
 
             //region INTAKE CONTROL
-            if (gamepad1.rightBumperWasPressed()) {
+            if (findIndex(colors, currentshot) != -1) {
                 intakePower = 1;
-                intakeOn = !intakeOn;
+                intakeOn = true;
                 //transOn = false
                 // idk if u want this here
             }
+            else{
+                intakeOn = false;
+            }
 
             // Outtake
-            if (gamepad1.leftBumperWasPressed()) {
+            if (gamepad1.left_bumper) {
                 intakePower = -0.7;
+                intakeOn = true;
             }
 
             if (intakeOn) {
@@ -456,12 +462,12 @@ public class RedTeleop extends LinearOpMode {
 
             //region SPINDEXER STUFF
             if (currentshot == 'n') {
-                if (gamepad2.triangleWasPressed()) {
+                if (gamepad1.squareWasPressed()) {
                     transOn = !transOn;
                     if (transOn) {
-                        spindexerIndex += 90;
+                        spindexerIndex += 70;
                     } else {
-                        spindexerIndex -=90;
+                        spindexerIndex -=70;
                         spindexeroffset = -60;
                     }
                 }
@@ -514,26 +520,30 @@ public class RedTeleop extends LinearOpMode {
                 }
                 timer = runtime.milliseconds();
                 targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
-                targetAngle = targetAngle%180; //what
+                targetAngle = targetAngle%360; //what
 
                 updateSpindexerPID(targetAngle, dtSec);
             }
             else if(flyOn){
 
                 gamepad2.setLedColor(0,1,0,200);
-                gamepad2.rumble(300);
+                gamepad1.rumble(300);
                 if (currentshot == 'n') {
-                    if (runtime.milliseconds() - timer > 100) {
+                    if (runtime.milliseconds() - timer > 400) {
                         transfer.setPower(1);
-                        spindexeroffset += 60;
                         colors = addX(3, colors, colors[0]);
                         colors = remove(colors, 0);
                         currentIndex += 1;
                         colors[0] = 'n';
-                        timer = runtime.milliseconds();
+                        spin.setPower(0.8);
+                        targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
+                        targetAngle = targetAngle%360; //what
+                    }
+                    else{
+                        updateSpindexerPID(targetAngle, dtSec);
                     }
                 }
-                spin.setPower(0.8);
+
             }
             //endregion
 
@@ -955,7 +965,7 @@ public class RedTeleop extends LinearOpMode {
         double candidateDeg = currentDeg + errorToDesired;
 
         // Hard safety clamp to keep off the wires
-        return clamp(candidateDeg, -TURRET_LIMIT_DEG, TURRET_LIMIT_DEG);
+        return clamp(candidateDeg, TURRET_LIMIT_DEGLOW, TURRET_LIMIT_DEGHIGH);
     }
     //endregion
 
