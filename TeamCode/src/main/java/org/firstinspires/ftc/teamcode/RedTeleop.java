@@ -111,7 +111,7 @@ public class RedTeleop extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
     private List<Pose> localizationSamples = new ArrayList<>();
-    private double turretTrackingOffset = -22;
+    private double turretTrackingOffset = -12;
 
     private static final double ALPHA = 0.8;
     //endregion
@@ -203,8 +203,8 @@ public class RedTeleop extends LinearOpMode {
     //endregion
 
     //region VARIANT VARS (Alliance Specific)
-    private static final double goalX = 143;
-    private static final double goalY = 163;
+    private static final double goalX = 140;
+    private static final double goalY = 140;
     private static final int DESIRED_TAG_ID = 24; //blue=20, red=24
     private static final Pose LOCALIZE_POSE = new Pose(135, 8.9, Math.toRadians(0));
     private static final double TAG_X_PEDRO = 14.612;
