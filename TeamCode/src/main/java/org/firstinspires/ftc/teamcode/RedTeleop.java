@@ -79,7 +79,7 @@ public class RedTeleop extends LinearOpMode {
     private static final double[] CAM_RANGE_SAMPLES =   {25, 39.2, 44.2, 48.8, 53.1, 56.9, 61.5, 65.6, 70.3, 73.4, 77.5}; //prob not use
     private static final double[] ODOM_RANGE_SAMPLES =  {65.4, 76.5, 86.2, 95.5, 103.5, 110.3, 123.7, 136.9, 142.6, 149.4};
     private static final double[] AIR_TIME =   {2.89, 2.89, 2.89, 2.89, 2.89, 3, 3.23, 3.5, 3.79, 4.27};  //seconds divide all by 4
-    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 720, 740, 770, 800, 830, 880};
+    private static final double[] FLY_SPEEDS =          {580, 600, 640, 660, 720, 740, 770, 800, 830, 910};
     private static final double[] HOOD_ANGLES=          {
             136.6, // Old -40.9
             107.5, // Old -70.0
@@ -111,7 +111,7 @@ public class RedTeleop extends LinearOpMode {
     // 57, 177, and 297 face the intake; others face the transfer
     private static final Pose STARTING_POSE = new Pose(0, 0, Math.toRadians(90));
     private List<Pose> localizationSamples = new ArrayList<>();
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = 0;
 
     private static final double ALPHA = 0.8;
     //endregion
@@ -189,10 +189,10 @@ public class RedTeleop extends LinearOpMode {
     // Turret Position
     private double tuPos = 0.0;
 
-    private static final double turretZeroDeg = 100;
-    private static final double TURRET_LIMIT_DEGLOW = -90;
+    private static final double turretZeroDeg = -110;
+    private static final double TURRET_LIMIT_DEGLOW = -900;
 
-    private static final double TURRET_LIMIT_DEGHIGH = 90;
+    private static final double TURRET_LIMIT_DEGHIGH = 900;
     private double tuOffset = 0.0;
     //endregion
 
@@ -205,8 +205,8 @@ public class RedTeleop extends LinearOpMode {
     //endregion
 
     //region VARIANT VARS (Alliance Specific)
-    private static final double goalX = 140;
-    private static final double goalY = 140;
+    private static final double goalX = 144;
+    private static final double goalY = 162;
     private static final int DESIRED_TAG_ID = 24; //blue=20, red=24
     private static final Pose LOCALIZE_POSE = new Pose(135, 8.9, Math.toRadians(0));
     private static final double TAG_X_PEDRO = 14.612;
@@ -312,7 +312,7 @@ public class RedTeleop extends LinearOpMode {
             //region PEDRO
             follower.update();
             Pose robotPose = follower.getPose();
-            velocity = follower.getVelocity();
+            //velocity = follower.getVelocity();
             //endregion
 
             //region AUTO FLYSPEED/ANGLE
@@ -340,6 +340,7 @@ public class RedTeleop extends LinearOpMode {
                 double radialDisplacement = radVel * shotTime;
                 adjustedRange = odomRange - radialDisplacement;
             }
+            smoothedRange = smooth(odomRange, smoothedRange);
             // interpolate between measured values
             if (!flyHoodLock) {
                 flySpeed = interpolate(smoothedRange, ODOM_RANGE_SAMPLES, FLY_SPEEDS);
@@ -436,19 +437,23 @@ public class RedTeleop extends LinearOpMode {
             //endregion
 
             //region INTAKE CONTROL
-            if (findIndex(colors, currentshot) != -1) {
-                intakePower = 1;
-                intakeOn = true;
-                //transOn = false
-                // idk if u want this here
-            }
-            else{
-                intakeOn = false;
-            }
+//            if (findIndex(colors, currentshot) != -1) {
+//                intakePower = 1;
+//                intakeOn = true;
+//                //transOn = false
+//                // idk if u want this here
+//            }
+//            else{
+//                intakeOn = false;
+//            }
 
             // Outtake
             if (gamepad1.left_bumper) {
                 intakePower = -0.7;
+                intakeOn = true;
+            }
+            else {
+                intakePower = 1;
                 intakeOn = true;
             }
 
@@ -535,7 +540,12 @@ public class RedTeleop extends LinearOpMode {
                         colors = remove(colors, 0);
                         currentIndex += 1;
                         colors[0] = 'n';
-                        spin.setPower(0.8);
+                        if (smoothedRange > 100) {
+                            spin.setPower(0.3);
+                        }
+                        else{
+                            spin.setPower(0.8);
+                        }
                         targetAngle = (SPINDEXER_POSITION)+spindexeroffset;
                         targetAngle = targetAngle%360; //what
                     }
@@ -629,7 +639,7 @@ public class RedTeleop extends LinearOpMode {
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
             turn = gamepad1.right_stick_x;
-            moveRobot(drive, strafe*1.2, -turn);
+            moveRobot(drive*1.2, strafe*1.2, -turn);
             //endregion
 
             //region TELEMETRY

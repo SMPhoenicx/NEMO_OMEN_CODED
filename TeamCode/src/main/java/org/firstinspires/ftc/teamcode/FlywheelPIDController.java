@@ -13,7 +13,7 @@ public class FlywheelPIDController {
     // Variables to tune
     //tune second until it responds fast to changes but doesn't oscillate too much
     //should stay within 20-60 of commanded speed
-    public double Kp = 0.01;
+    public double Kp = 0.025;
     public double Ki = 0.001;
     //tune to prevent overshoots
     public double Kd = 0.0003;

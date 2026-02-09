@@ -55,7 +55,6 @@ public class CloseRed extends LinearOpMode {
     private Pose[] pickup1 = new Pose[5];
     private Pose[] pickup2 = new Pose[5];
     private Pose[] pickup3 = new Pose[5];
-    private Pose[] gatePose = new Pose[5];
     private PathChain scorePath0, scorePath1, scorePath2, scorePath3, moveScore, pickupPath1, pickupPath2, pickupPath3;
     //endregion
 
@@ -240,23 +239,20 @@ public class CloseRed extends LinearOpMode {
     private static final double goalY = 144;
 
     public void createPoses(){
-        startPose = new Pose(124,123.5,Math.toRadians(54));
+        startPose = new Pose(120,127.5,Math.toRadians(54));
 
         //0 is control point, 1 is endpoint
         pickup1[0] = new Pose(88,84.75,Math.toRadians(0));
-        pickup1[1] = new Pose(144,84.75,Math.toRadians(0));
-
-        gatePose[0] = new Pose(144-29.82,77.24,Math.toRadians(90));
-        gatePose[1] = new Pose(144-14.62,75.3,Math.toRadians(90));//14.62 75.3
+        pickup1[1] = new Pose(134,84.75,Math.toRadians(0));
 
         pickup2[0] = new Pose(88,80.52,Math.toRadians(0));
-        pickup2[1] = new Pose(144,80.36,Math.toRadians(0));
+        pickup2[1] = new Pose(134,80.36,Math.toRadians(0));
         //return from pickup
         pickup2[2] = new Pose(88, 55.73,Math.toRadians(0));
-        pickup2[3] = new Pose(144, 55.73,Math.toRadians(0));
+        pickup2[3] = new Pose(134, 55.73,Math.toRadians(0));
 
         pickup3[0] = new Pose(88,30.5,Math.toRadians(0));
-        pickup3[1] = new Pose(144,30.58,Math.toRadians(0));
+        pickup3[1] = new Pose(134,30.58,Math.toRadians(0));
 
         shoot1 = new Pose(95,79.4,Math.toRadians(0));
 //      1  shoot0 = new Pose(60,119,Math.toRadians(150));
@@ -269,7 +265,6 @@ public class CloseRed extends LinearOpMode {
                 .setConstraints(shootConstraints)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.87,()-> {
-                    follower.setMaxPower(1);
                     shootReady=true;
                 })
                 .build();
@@ -277,7 +272,7 @@ public class CloseRed extends LinearOpMode {
                 .addPath(new BezierCurve(shoot1,pickup1[0],pickup1[1]))
                 .setConstantHeadingInterpolation(pickup1[0].getHeading())
                 .addParametricCallback(0.2,()->{
-                    follower.setMaxPower(0.8);;
+                    follower.setMaxPower(1);;
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -287,7 +282,7 @@ public class CloseRed extends LinearOpMode {
                 .addPath(new BezierCurve(shoot1,pickup2[0],pickup2[1],pickup2[2],pickup2[3]))
                 .setConstantHeadingInterpolation(pickup2[0].getHeading())
                 .addParametricCallback(0.35,()->{
-                    follower.setMaxPower(0.8);;
+                    follower.setMaxPower(1);;
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -297,7 +292,7 @@ public class CloseRed extends LinearOpMode {
                 .addPath(new BezierCurve(shoot1,pickup3[0],pickup3[1]))
                 .setConstantHeadingInterpolation(pickup3[0].getHeading())
                 .addParametricCallback(0.33,()->{
-                    follower.setMaxPower(0.9);
+                    follower.setMaxPower(1);
                     intakeOn = true;
                     pidKp -= 0.0015;
                 })
@@ -308,7 +303,7 @@ public class CloseRed extends LinearOpMode {
                 .setConstraints(shootConstraints)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.5,()-> {
-                    follower.setMaxPower(0.7);;
+                    follower.setMaxPower(1);;
                 })
                 .addParametricCallback(0.983,()-> shootReady=true)
                 .build();
@@ -318,7 +313,7 @@ public class CloseRed extends LinearOpMode {
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.5,()-> {
-                    follower.setMaxPower(0.7);;
+                    follower.setMaxPower(1);;
                 })
                 .addParametricCallback(0.99,()-> shootReady=true)
                 .build();
@@ -328,7 +323,7 @@ public class CloseRed extends LinearOpMode {
                 .setTranslationalConstraint(1.5)
                 .setConstantHeadingInterpolation(shoot1.getHeading())
                 .addParametricCallback(0.4,()-> {
-                    follower.setMaxPower(0.7);;
+                    follower.setMaxPower(1);;
                 })
                 .addParametricCallback(0.99,()-> shootReady=true)
                 .build();
@@ -370,7 +365,7 @@ public class CloseRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 700;
+        double flySpeed = 850;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -489,14 +484,14 @@ public class CloseRed extends LinearOpMode {
                     //region CYCLE ZERO (READ MOTIF)
                     case 0:
 //                        if(subState==0){
-                        follower.setMaxPower(1);
-                         follower.followPath(scorePath0,true);
+//                            follower.followPath(scorePath0,true);
 ////                            motifOn = true;
 //
 //                            timeout = runtime.milliseconds()+500;
 //                            subState++;
 //                        }
                         if(subState==0){
+//                            motifOn = true;
                             timeout=runtime.milliseconds()+4000;
                             subState++;
                         }
@@ -515,15 +510,19 @@ public class CloseRed extends LinearOpMode {
                     //region CYCLE ONE
                     case 1:
                         if(subState==0){
-                            follower.followPath(pickupPath1,false);
+                            spin.setPower(0);
+                            transfer.setPower(0);
                             autoShootOn = false;
+                            goalX = 144;
                             transOn = false;
+                            follower.followPath(pickupPath1,false);
+                            flySpeed += shoot0change;
+
                             subState++;
                         }
                         else if(subState==2){
-                            follower.setMaxPower(1);
                             follower.followPath(scorePath1,true);
-                            tuPos += 3;
+                            //transOn = true;
                             autoShootOn = true;
                             shootingState=0;
 
@@ -542,8 +541,7 @@ public class CloseRed extends LinearOpMode {
                             subState++;
                         }
                         //INTAKE is subState 1
-                        else if(subState>1 && subState < 4){
-                            follower.setMaxPower(0.7);
+                        else if(subState==2){
                             follower.followPath(scorePath2,true);
                             tuPos += 3;
                             autoShootOn = true;
@@ -695,7 +693,7 @@ public class CloseRed extends LinearOpMode {
             }
             //endregion
 
-//            //region SHOOT PREP
+            //region SHOOT PREP
 //            if(autoShootOn&&shootingState==0&&!motifOn){
 //                int greenIn=-1;
 //                for(int i=0;i<3;i++){
@@ -734,7 +732,7 @@ public class CloseRed extends LinearOpMode {
                 if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
-                        spin.setPower(0.3);
+                        spin.setPower(0.2);
                         cutoffCarsPID = true;
 
                         timeout=runtime.milliseconds()+3000;
