@@ -189,7 +189,7 @@ public class RedTeleop extends LinearOpMode {
     // Turret Position
     private double tuPos = 0.0;
 
-    private static final double turretZeroDeg = -110;
+    private static final double turretZeroDeg = -215;
     private static final double TURRET_LIMIT_DEGLOW = -900;
 
     private static final double TURRET_LIMIT_DEGHIGH = 900;
@@ -639,7 +639,7 @@ public class RedTeleop extends LinearOpMode {
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
             turn = gamepad1.right_stick_x;
-            moveRobot(drive*1.2, strafe*1.2, -turn);
+            moveRobot(drive*1.5, strafe*1.8, -turn);
             //endregion
 
             //region TELEMETRY

@@ -145,7 +145,7 @@ public class CloseRed extends LinearOpMode {
     // Turret Position
     private double tuPos = 0;
 
-    private static final double turretZeroDeg = 100;
+    private static final double turretZeroDeg = -215;
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = 0;
@@ -208,7 +208,7 @@ public class CloseRed extends LinearOpMode {
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
     double targetVelDegPerSec = 0;
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = 0;
     double rawTurretTargetDeg = tuPos;
     double safeTurretTargetDeg = 0;
 
@@ -245,16 +245,16 @@ public class CloseRed extends LinearOpMode {
         pickup1[0] = new Pose(88,84.75,Math.toRadians(0));
         pickup1[1] = new Pose(134,84.75,Math.toRadians(0));
 
-        pickup2[0] = new Pose(88,80.52,Math.toRadians(0));
-        pickup2[1] = new Pose(134,80.36,Math.toRadians(0));
+        pickup2[0] = new Pose(88,75.52,Math.toRadians(0));
+        pickup2[1] = new Pose(154,80.36,Math.toRadians(0));
         //return from pickup
         pickup2[2] = new Pose(88, 55.73,Math.toRadians(0));
         pickup2[3] = new Pose(134, 55.73,Math.toRadians(0));
 
         pickup3[0] = new Pose(88,30.5,Math.toRadians(0));
-        pickup3[1] = new Pose(134,30.58,Math.toRadians(0));
+        pickup3[1] = new Pose(154,25.58,Math.toRadians(0));
 
-        shoot1 = new Pose(95,79.4,Math.toRadians(0));
+        shoot1 = new Pose(85,69.4,Math.toRadians(0));
 //      1  shoot0 = new Pose(60,119,Math.toRadians(150));
         movePoint = new Pose(144-31,69.6,Math.toRadians(90));
     }
@@ -365,7 +365,7 @@ public class CloseRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 850;
+        double flySpeed = 680;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -459,9 +459,9 @@ public class CloseRed extends LinearOpMode {
         pidLastTimeMs = runtime.milliseconds();
 
         while(opModeIsActive()) {
-            follower.update();
             Pose robotPose = follower.getPose();
-            StateVars.lastPose = follower.getPose();
+            //StateVars.lastPose = follower.getPose();
+            follower.update();
 
             //region IMPORTANT VARS
             //needed at beginning of loop, don't change location
@@ -483,20 +483,20 @@ public class CloseRed extends LinearOpMode {
                 switch(pathState){
                     //region CYCLE ZERO (READ MOTIF)
                     case 0:
-//                        if(subState==0){
-//                            follower.followPath(scorePath0,true);
+                        if(subState==0){
+                            follower.followPath(scorePath0,true);
 ////                            motifOn = true;
 //
 //                            timeout = runtime.milliseconds()+500;
-//                            subState++;
-//                        }
-                        if(subState==0){
+                            subState++;
+                        }
+                        if(subState==1){
 //                            motifOn = true;
                             timeout=runtime.milliseconds()+4000;
                             subState++;
                         }
                         //READ MOTIF is subState 1
-                        if(subState==1){
+                        if(subState==2){
                             tuPos = 90;
                             autoShootOn = true;
                             shootingState=0;
