@@ -8,12 +8,12 @@ public class FlywheelPIDController {
     private final DcMotorEx fly2;
 
     // makes the initial spinup faster, boosts ff
-    public double SPINUP_BOOST = 0.001;
+    public double SPINUP_BOOST = 0.01;
 
     // Variables to tune
     //tune second until it responds fast to changes but doesn't oscillate too much
     //should stay within 20-60 of commanded speed
-    public double Kp = 0.015;
+    public double Kp = 0.02;
     public double Ki = 0.001;
     //tune to prevent overshoots
     public double Kd = 0.0006;

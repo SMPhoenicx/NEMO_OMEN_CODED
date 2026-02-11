@@ -639,7 +639,7 @@ public class RedTeleop extends LinearOpMode {
             drive = -gamepad1.left_stick_y;
             strafe = -gamepad1.left_stick_x;
             turn = gamepad1.right_stick_x;
-            moveRobot(drive*1.5, strafe*1.8, -turn);
+            moveRobot(drive*1.5, strafe*1., -turn);
             //endregion
 
             //region TELEMETRY
