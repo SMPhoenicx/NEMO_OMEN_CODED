@@ -145,7 +145,7 @@ public class FarBlue extends LinearOpMode {
     // Turret Position
     private double tuPos = 0;
 
-    private static final double turretZeroDeg = 100;
+    private static final double turretZeroDeg = -215;
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = 0;
@@ -208,7 +208,7 @@ public class FarBlue extends LinearOpMode {
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
     double targetVelDegPerSec = 0;
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = 10;
     double rawTurretTargetDeg = tuPos;
     double safeTurretTargetDeg = 0;
 
@@ -400,8 +400,8 @@ public class FarBlue extends LinearOpMode {
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backRight.setDirection(DcMotor.Direction.REVERSE);
 
-        fly1.setDirection(DcMotor.Direction.FORWARD);
-        fly2.setDirection(DcMotor.Direction.FORWARD);
+        fly1.setDirection(DcMotor.Direction.REVERSE);
+        fly2.setDirection(DcMotor.Direction.REVERSE );
         intake.setDirection(DcMotor.Direction.FORWARD);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -730,7 +730,7 @@ public class FarBlue extends LinearOpMode {
                 if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
-                        spin.setPower(0.2);
+                        spin.setPower(0.6);
                         cutoffCarsPID = true;
 
                         timeout=runtime.milliseconds()+3000;

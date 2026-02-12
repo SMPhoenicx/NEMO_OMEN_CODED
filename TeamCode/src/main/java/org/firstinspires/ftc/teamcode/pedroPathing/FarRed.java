@@ -145,7 +145,7 @@ public class FarRed extends LinearOpMode {
     // Turret Position
     private double tuPos = 0;
 
-    private static final double turretZeroDeg = 100;
+    private static final double turretZeroDeg = -215;
     private boolean hasTeleopLocalized = true;
 
     double flyOffset = 0;
@@ -208,7 +208,7 @@ public class FarRed extends LinearOpMode {
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
     double targetVelDegPerSec = 0;
-    private double turretTrackingOffset = -12;
+    private double turretTrackingOffset = 10;
     double rawTurretTargetDeg = tuPos;
     double safeTurretTargetDeg = 0;
 
@@ -364,7 +364,7 @@ public class FarRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 850;
+        double flySpeed = 900;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -400,8 +400,8 @@ public class FarRed extends LinearOpMode {
         frontRight.setDirection(DcMotor.Direction.REVERSE);
         backRight.setDirection(DcMotor.Direction.REVERSE);
 
-        fly1.setDirection(DcMotor.Direction.FORWARD);
-        fly2.setDirection(DcMotor.Direction.FORWARD);
+        fly1.setDirection(DcMotor.Direction.REVERSE);
+        fly2.setDirection(DcMotor.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.FORWARD);
 
         spin.setDirection(CRServo.Direction.FORWARD);
@@ -731,10 +731,10 @@ public class FarRed extends LinearOpMode {
                 if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
-                        spin.setPower(0.2);
+                        spin.setPower(0.6);
                         cutoffCarsPID = true;
 
-                        timeout=runtime.milliseconds()+3000;
+                        timeout=runtime.milliseconds()+2000;
                         shootingState++;
                     }
                 }
