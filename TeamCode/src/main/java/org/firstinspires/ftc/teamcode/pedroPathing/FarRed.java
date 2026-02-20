@@ -208,7 +208,7 @@ public class FarRed extends LinearOpMode {
     private boolean flyHoodLock = false;
     private int prevCarouselIndex = 0;
     double targetVelDegPerSec = 0;
-    private double turretTrackingOffset = 10;
+    private double turretTrackingOffset = 14;
     double rawTurretTargetDeg = tuPos;
     double safeTurretTargetDeg = 0;
 
@@ -364,7 +364,7 @@ public class FarRed extends LinearOpMode {
         double hoodAngle = 0;
         double hoodOffset = 0;
 
-        double flySpeed = 900;
+        double flySpeed = 940;
         int shoot0change = -12;
 
         double lastTime = 0;
@@ -491,7 +491,7 @@ public class FarRed extends LinearOpMode {
 //                        }
                         if(subState==0){
 //                            motifOn = true;
-                            timeout=runtime.milliseconds()+4000;
+                            timeout=runtime.milliseconds()+5000;
                             subState++;
                         }
                         //READ MOTIF is subState 1
@@ -731,7 +731,7 @@ public class FarRed extends LinearOpMode {
                 if(shootingState==0){
                     transOn = true;
                     if(turretAtTarget){
-                        spin.setPower(0.6);
+                        spin.setPower(0.5);
                         cutoffCarsPID = true;
 
                         timeout=runtime.milliseconds()+2000;
